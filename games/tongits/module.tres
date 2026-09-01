@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="GameDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/gamehub_sdk/game_definition.gd" id="1"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"tongits"
+title = "Tongits"
+description = "菲律宾经典三人拉米纸牌游戏。组合手牌、控制弃牌，并争取率先完成 Tongits。"
+version = "0.1.0"
+icon = ExtResource("2")
+category = "卡牌"
+tags = PackedStringArray("2-3人", "回合制", "策略")
+accent_color = Color(0.36, 0.89, 0.7, 1)
+availability = 0
+entry_scene_path = "res://games/tongits/scene/main.tscn"
+delivery_mode = 0
+pack_path = ""
+min_players = 2
+max_players = 3

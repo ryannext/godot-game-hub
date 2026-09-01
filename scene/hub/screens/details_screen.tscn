@@ -1,0 +1,87 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://script/screens/details_screen.gd" id="1"]
+
+[node name="DetailsScreen" type="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="BackButton" type="Button" parent="Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "← 返回"
+
+[node name="Hero" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="IconPanel" type="PanelContainer" parent="Content/Hero"]
+custom_minimum_size = Vector2(280, 280)
+layout_mode = 2
+
+[node name="GameIcon" type="TextureRect" parent="Content/Hero/IconPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+expand_mode = 3
+stretch_mode = 5
+
+[node name="Info" type="VBoxContainer" parent="Content/Hero"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Content/Hero/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "游戏名称"
+
+[node name="Category" type="Label" parent="Content/Hero/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.91, 0.62, 1)
+text = "分类"
+
+[node name="Description" type="Label" parent="Content/Hero/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.72, 0.82, 1)
+theme_override_font_sizes/font_size = 17
+text = "游戏介绍"
+autowrap_mode = 2
+
+[node name="Tags" type="Label" parent="Content/Hero/Info"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.62, 1, 1)
+text = "标签"
+
+[node name="Flex" type="Control" parent="Content/Hero/Info"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Actions" type="HBoxContainer" parent="Content/Hero/Info"]
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="Content/Hero/Info/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 52)
+layout_mode = 2
+text = "开始游戏"
+
+[node name="FavoriteButton" type="Button" parent="Content/Hero/Info/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 52)
+layout_mode = 2
+text = "☆ 收藏"

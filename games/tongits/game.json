@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "tongits",
+  "name": "Tongits",
+  "version": "0.1.0",
+  "type": "card_game",
+  "entry_scene_path": "res://games/tongits/scene/main.tscn",
+  "delivery_mode": "builtin",
+  "pack_path": "",
+  "players": {
+	"min": 2,
+	"max": 3
+  }
+}

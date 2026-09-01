@@ -1,0 +1,143 @@
+[gd_scene format=3 uid="uid://lngh0qbo4j52"]
+
+[ext_resource type="Script" uid="uid://b7j5j6afeqtbv" path="res://script/boot/boot.gd" id="1"]
+[ext_resource type="Theme" uid="uid://do4yxayu2fetm" path="res://resources/themes/hub_theme.tres" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="GlowPanel"]
+content_margin_left = 48.0
+content_margin_top = 42.0
+content_margin_right = 48.0
+content_margin_bottom = 42.0
+bg_color = Color(0.055, 0.071, 0.125, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.27, 0.59, 0.65)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="StyleBoxFlat" id="ProgressBackground"]
+bg_color = Color(0.078, 0.098, 0.169, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="ProgressFill"]
+bg_color = Color(0.42, 0.38, 1, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[node name="Boot" type="Control" unique_id=853283342]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1539082231]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.018, 0.027, 0.059, 1)
+
+[node name="Center" type="CenterContainer" parent="." unique_id=146216032]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="Center" unique_id=1969432154]
+custom_minimum_size = Vector2(560, 310)
+layout_mode = 2
+theme_override_styles/panel = SubResource("GlowPanel")
+
+[node name="Content" type="VBoxContainer" parent="Center/Card" unique_id=1538022457]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Mark" type="Label" parent="Center/Card/Content" unique_id=1886349647]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.62, 1, 1)
+theme_override_font_sizes/font_size = 42
+text = "✦"
+horizontal_alignment = 1
+
+[node name="Brand" type="Label" parent="Center/Card/Content" unique_id=1056823617]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "GAMEHUB"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Center/Card/Content" unique_id=1410584157]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.61, 0.72, 1)
+text = "正在准备你的游戏空间"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Center/Card/Content" unique_id=1066104129]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="ProgressRow" type="HBoxContainer" parent="Center/Card/Content" unique_id=868099749]
+layout_mode = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="Center/Card/Content/ProgressRow" unique_id=64711382]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_styles/background = SubResource("ProgressBackground")
+theme_override_styles/fill = SubResource("ProgressFill")
+show_percentage = false
+
+[node name="ProgressLabel" type="Label" parent="Center/Card/Content/ProgressRow" unique_id=553061802]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.71, 0.69, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "0%"
+horizontal_alignment = 2
+
+[node name="StatusLabel" type="Label" parent="Center/Card/Content" unique_id=925012583]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.91, 0.62, 1)
+theme_override_font_sizes/font_size = 13
+text = "正在启动…"
+horizontal_alignment = 1
+
+[node name="Footer" type="Label" parent="." unique_id=1690780665]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -52.0
+offset_right = 180.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.33, 0.36, 0.47, 1)
+theme_override_font_sizes/font_size = 12
+text = "GameHub Preview · 安全加载独立游戏目录"
+horizontal_alignment = 1

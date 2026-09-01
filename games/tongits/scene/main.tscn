@@ -1,0 +1,328 @@
+[gd_scene format=3 uid="uid://dogmxbippo2as"]
+
+[ext_resource type="Script" uid="uid://n3meikk3xaiy" path="res://games/tongits/script/ui/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://d0kqsd6d88l6q" path="res://games/tongits/script/ui/hand_view.gd" id="2_hand"]
+[ext_resource type="Texture2D" uid="uid://p2r1dtm0pl8c" path="res://games/tongits/assets/backgrounds/tongits_cocos_game_bg.jpg" id="3_table_bg"]
+[ext_resource type="Texture2D" uid="uid://bln3h1wth2uia" path="res://games/tongits/res/images/tip/card_back.png" id="4_card_back"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_meld_area"]
+bg_color = Color(0.07, 0.31, 0.68, 0.16)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.72, 1, 0.58)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_deck_count"]
+bg_color = Color(1, 0.78, 0.08, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.42, 0.2, 0.05, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_blue"]
+bg_color = Color(0.18, 0.55, 0.88, 0.96)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_blue_pressed"]
+bg_color = Color(0.1, 0.38, 0.7, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_gray"]
+bg_color = Color(0.22, 0.3, 0.42, 0.94)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_green"]
+bg_color = Color(0.37, 0.72, 0.2, 0.96)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_green_pressed"]
+bg_color = Color(0.22, 0.53, 0.11, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_orange"]
+bg_color = Color(0.95, 0.62, 0.12, 0.98)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="Main" type="Control" unique_id=1692674004]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Table" type="TextureRect" parent="." unique_id=1705206780]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_table_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ExitButton" type="Button" parent="." unique_id=686538368]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 20.0
+offset_top = 18.0
+offset_right = 148.0
+offset_bottom = 66.0
+text = "返回大厅"
+
+[node name="RedealButton" type="Button" parent="." unique_id=532320760]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -148.0
+offset_top = 18.0
+offset_right = -20.0
+offset_bottom = 66.0
+grow_horizontal = 0
+text = "测试发牌"
+
+[node name="OpponentLeftMeldArea" type="Panel" parent="." unique_id=413263389]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.12
+anchor_top = 0.12
+anchor_right = 0.36
+anchor_bottom = 0.43
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
+
+[node name="OpponentRightMeldArea" type="Panel" parent="." unique_id=1024056887]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.64
+anchor_top = 0.12
+anchor_right = 0.88
+anchor_bottom = 0.43
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
+
+[node name="PlayerMeldArea" type="Panel" parent="." unique_id=1860040659]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.3
+anchor_top = 0.48
+anchor_right = 0.7
+anchor_bottom = 0.6
+offset_left = -244.0
+offset_right = 244.0
+offset_bottom = 7.9999695
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
+
+[node name="DeckArea" type="Control" parent="." unique_id=334828628]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.39
+anchor_right = 0.5
+anchor_bottom = 0.39
+offset_left = -90.0
+offset_top = -198.79999
+offset_right = -8.0
+offset_bottom = -86.79999
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CardBackBottom" type="TextureRect" parent="DeckArea" unique_id=844831974]
+modulate = Color(0.62, 0.62, 0.68, 1)
+layout_mode = 0
+offset_left = 11.0
+offset_top = 11.0
+offset_right = 83.0
+offset_bottom = 113.0
+mouse_filter = 2
+texture = ExtResource("4_card_back")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CardBackMiddle" type="TextureRect" parent="DeckArea" unique_id=747034088]
+modulate = Color(0.8, 0.8, 0.86, 1)
+layout_mode = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 80.0
+offset_bottom = 110.0
+mouse_filter = 2
+texture = ExtResource("4_card_back")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CardBackTop" type="TextureRect" parent="DeckArea" unique_id=331422053]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 77.0
+offset_bottom = 107.0
+mouse_filter = 2
+texture = ExtResource("4_card_back")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DeckCountBadge" type="Panel" parent="DeckArea" unique_id=1842334798]
+z_index = 2
+layout_mode = 0
+offset_left = 24.0
+offset_top = 40.200012
+offset_right = 60.0
+offset_bottom = 74.20001
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_deck_count")
+
+[node name="DeckCountLabel" type="Label" parent="DeckArea/DeckCountBadge" unique_id=1408687870]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.25, 0.09, 0.02, 1)
+theme_override_font_sizes/font_size = 20
+text = "15"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ActionBar" type="HBoxContainer" parent="." unique_id=870701212]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -270.0
+offset_bottom = -210.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="MoveLeftButton" type="Button" parent="ActionBar" unique_id=695466476]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_blue")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_blue_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_blue")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
+text = "←"
+
+[node name="GroupActionButton" type="Button" parent="ActionBar" unique_id=685989345]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(132, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_green")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_green_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_green")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
+text = "成组"
+
+[node name="MoveRightButton" type="Button" parent="ActionBar" unique_id=1407578516]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_blue")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_blue_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_blue")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
+text = "→"
+
+[node name="SortControlBar" type="HBoxContainer" parent="." unique_id=2012075179]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -278.0
+offset_top = -270.0
+offset_right = -28.0
+offset_bottom = -218.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="AutoArrangeButton" type="Button" parent="SortControlBar" unique_id=1868636568]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_gray")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_orange")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_gray")
+toggle_mode = true
+button_pressed = true
+text = "自动排列"
+
+[node name="SortRuleButton" type="Button" parent="SortControlBar" unique_id=1203946703]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_blue")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_blue_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_blue")
+text = "点数优先"
+
+[node name="HandView" type="Control" parent="." unique_id=1814854754]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -196.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+script = ExtResource("2_hand")

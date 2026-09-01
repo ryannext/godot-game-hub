@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GameDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/gamehub_sdk/game_definition.gd" id="1"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"orbit_runner"
+title = "轨道冲刺"
+description = "在不断变化的星际轨道上躲避障碍、收集能量，并挑战自己的最长航程。"
+version = "0.1.0"
+icon = ExtResource("2")
+category = "街机"
+tags = PackedStringArray("单人", "竞速", "快速游戏")
+accent_color = Color(0.31, 0.72, 1, 1)
+availability = 1

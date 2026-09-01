@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GameDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/gamehub_sdk/game_definition.gd" id="1"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"sky_cards"
+title = "星空卡牌"
+description = "收集星座卡牌，构筑独特牌组，探索漂浮在云海之上的未知岛屿。"
+version = "0.1.0"
+icon = ExtResource("2")
+category = "策略"
+tags = PackedStringArray("单人", "卡牌", "构筑")
+accent_color = Color(0.48, 0.91, 0.62, 1)
+availability = 1

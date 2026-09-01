@@ -1,0 +1,82 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://script/screens/home_screen.gd" id="1"]
+
+[node name="HomeScreen" type="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+script = ExtResource("1")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 22
+
+[node name="Hero" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Eyebrow" type="Label" parent="Content/Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.91, 0.62, 1)
+theme_override_font_sizes/font_size = 13
+text = "GAMEHUB 大厅"
+
+[node name="Title" type="Label" parent="Content/Hero"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "发现你的下一场冒险"
+
+[node name="Subtitle" type="Label" parent="Content/Hero"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.61, 0.72, 1)
+theme_override_font_sizes/font_size = 16
+text = "所有游戏独立运行，由 GameHub 统一管理与启动。"
+
+[node name="SectionHeader" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="SectionTitle" type="Label" parent="Content/SectionHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+text = "精选游戏"
+
+[node name="BrowseButton" type="Button" parent="Content/SectionHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "查看全部  →"
+
+[node name="FeaturedGrid" type="HFlowContainer" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TipPanel" type="PanelContainer" parent="Content"]
+custom_minimum_size = Vector2(0, 94)
+layout_mode = 2
+
+[node name="Tip" type="HBoxContainer" parent="Content/TipPanel"]
+layout_mode = 2
+
+[node name="Icon" type="Label" parent="Content/TipPanel/Tip"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.62, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "✦"
+
+[node name="Copy" type="VBoxContainer" parent="Content/TipPanel/Tip"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="Content/TipPanel/Tip/Copy"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "独立游戏，统一体验"
+
+[node name="Body" type="Label" parent="Content/TipPanel/Tip/Copy"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.61, 0.72, 1)
+text = "每款游戏拥有独立项目、版本和存档；大厅只管理目录与启动流程。"
