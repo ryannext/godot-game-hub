@@ -39,8 +39,12 @@ const DEAL_CARD_ANIMATION_SECONDS := 0.22
 const DEAL_CARD_STAGGER_SECONDS := 0.075
 const DEAL_Z_SWITCH_SECONDS := 0.075
 const DEAL_START_SCALE := 0.6
-# 发牌底座由 DeckArea 持续显示；实际牌统一从顶层起飞，避免越发越薄并在最后只剩单张。
+# 13 张实际发牌按 Y 轴逐层排成牌堆，每发走一张便将剩余牌整体收紧一层。
+const DEAL_STACK_LAYER_OFFSET := 3.0
+# 13 层以 DeckArea 中心对称展开：首层 -18px，中层 0px，底层 +18px。
+const DEAL_STACK_TOP_OFFSET_Y := -18.0
 const DEAL_INITIAL_STACK_HOLD_SECONDS := 0.12
+const DEAL_STACK_BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 const DEAL_REVEAL_MIN_SCALE := 0.7
 const DEAL_REVEAL_SHRINK_SECONDS := 0.05
 const DEAL_FACE_GROW_SECONDS := 0.10
@@ -83,6 +87,7 @@ var _pending_move_card_id := -1
 var _last_applied_revision := -1
 var _deal_animation_pending := false
 var _deal_cards_remaining := 0
+var _deal_order_card_ids: Array[int] = []
 var _arrange_animation_pending := false
 var _arrange_cards_remaining := 0
 # 记录每张牌的布局动画，开始拖拽或重新布局前必须停止旧动画，避免多个位置写入源互相争抢。
@@ -516,6 +521,7 @@ func _relayout_deal() -> void:
 	var origin := _deal_origin_local()
 	var deal_order := 0
 	_deal_cards_remaining = layout.entries.size()
+	_deal_order_card_ids.clear()
 	_set_card_interaction_enabled(false)
 	for entry: Dictionary in layout.entries:
 		var card_id := int(entry.card_id)
@@ -526,11 +532,15 @@ func _relayout_deal() -> void:
 		var target: Vector2 = layout.card_positions[card_id]
 		var target_z := int(layout.card_order.get(card_id, deal_order))
 		_stop_card_tween(card_id)
-		# 三层厚度由 DeckArea 提供，所有实际发牌都从同一个顶层位置开始。
-		view.position = origin
+		# 每张牌占据一个真实层级，因此 13 张牌会形成 13 层而不是三层示意。
+		view.position = origin + Vector2(
+			0.0,
+			DEAL_STACK_TOP_OFFSET_Y + DEAL_STACK_LAYER_OFFSET * deal_order
+		)
 		view.scale = Vector2.ONE * DEAL_START_SCALE
-		view.modulate = Color.WHITE
+		view.modulate = _deal_stack_tint(deal_order, layout.entries.size())
 		view.show_back()
+		_deal_order_card_ids.append(card_id)
 		# 牌堆阶段按发牌顺序设置临时层级，保证当前要发的牌始终位于最上方。
 		view.z_index = layout.entries.size() - deal_order
 		var tween := view.create_tween()
@@ -540,6 +550,7 @@ func _relayout_deal() -> void:
 		tween.tween_callback(_prepare_deal_card_flight.bind(
 			card_id,
 			tween,
+			deal_order,
 			deal_order == layout.entries.size() - 1
 		))
 		# 位移与缩放使用同一线性进度，避免位置提前贴近手牌、牌背却仍未完成放大的堆叠现象。
@@ -623,15 +634,30 @@ func _finish_deal_animation() -> void:
 	# 发牌全部翻面后也用同一段收拢/展开动画整理为默认散牌顺序。
 	_relayout_collapse_expand()
 
-func _prepare_deal_card_flight(card_id: int, tween: Tween, announce_last_card: bool) -> void:
+func _prepare_deal_card_flight(card_id: int, tween: Tween, deal_order: int, announce_last_card: bool) -> void:
 	if _move_tweens.get(card_id) != tween:
 		return
 	var view: TongitsCardView = _card_views.get(card_id)
 	if view != null:
 		view.modulate = Color.WHITE
+	# 底边保持不动：顶牌飞走后不移动其余牌，因此牌堆会从上向下逐层减少。
+	for later_order in range(deal_order + 1, _deal_order_card_ids.size()):
+		var later_view: TongitsCardView = _card_views.get(_deal_order_card_ids[later_order])
+		if later_view == null:
+			continue
+		later_view.modulate = _deal_stack_tint(
+			later_order - deal_order - 1,
+			_deal_order_card_ids.size() - deal_order - 1
+		)
 	if announce_last_card:
 		# 回调位于最后一张牌的位移动画之前，所以剩余牌堆会在它起飞时出现。
 		last_deal_card_started.emit()
+
+func _deal_stack_tint(depth: int, stack_size: int) -> Color:
+	if stack_size <= 1:
+		return Color.WHITE
+	var weight := float(depth) / float(stack_size - 1)
+	return Color.WHITE.lerp(DEAL_STACK_BOTTOM_TINT, weight)
 
 func _set_deal_card_final_z(card_id: int, tween: Tween, target_z: int) -> void:
 	if _move_tweens.get(card_id) != tween:
@@ -650,6 +676,7 @@ func _prepare_deal_card_reveal(card_id: int, tween: Tween, target: Vector2) -> v
 
 func _cancel_deal_animation_runtime() -> void:
 	_deal_cards_remaining = 0
+	_deal_order_card_ids.clear()
 	_arrange_cards_remaining = 0
 	# 普通快照可能中断发牌，必须恢复完整牌面，不能遗留半翻状态或牌背。
 	for view: TongitsCardView in _card_views.values():

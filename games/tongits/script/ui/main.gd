@@ -8,7 +8,6 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var move_left_button: Button = %MoveLeftButton
 @onready var move_right_button: Button = %MoveRightButton
 @onready var deck_area: Control = %DeckArea
-@onready var deck_count_badge: Control = $DeckArea/DeckCountBadge
 @onready var deck_count_label: Label = %DeckCountLabel
 
 var _server := TongitsHandServerSimulator.new()
@@ -65,9 +64,9 @@ func shutdown_game() -> void:
 func _deal_hand() -> void:
 	_deal_counter += 1
 	hand_view.clear_selection()
-	# 三层底座在整个发牌阶段持续存在；数量标记等最后一张起飞时才出现。
-	deck_area.visible = true
-	deck_count_badge.visible = false
+	# 玩家收到的 13 张牌由 HandView 自身形成真实牌堆，剩余牌堆此时尚未生成。
+	deck_area.call("set_card_count", 0, false)
+	deck_area.visible = false
 	hand_view.prepare_deal_animation()
 	# 固定基础 seed 加计数既方便复现，也能让“重新发牌”得到不同手牌。
 	_server.start_deal(20260828 + _deal_counter)
@@ -82,9 +81,9 @@ func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	_update_action_buttons()
 
 func _on_last_deal_card_started() -> void:
-	# 最后一张牌一离开顶层，底下的三层底座无缝转为带数量的剩余牌堆。
+	# 第 13 张牌开始起飞时，在同一牌堆节点按快照真实生成剩余的 15 层牌背。
 	deck_area.visible = _deck_remaining_count > 0
-	deck_count_badge.visible = _deck_remaining_count > 0
+	deck_area.call("set_card_count", _deck_remaining_count, true)
 
 func _on_selection_changed(loose_card_ids: Array, selected_group_id: int) -> void:
 	_selected_loose_ids.assign(loose_card_ids)
