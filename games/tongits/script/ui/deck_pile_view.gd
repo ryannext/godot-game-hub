@@ -13,7 +13,6 @@ const DECK_PERSPECTIVE_ROTATION_X := 16.0
 const DECK_PERSPECTIVE_FOV := 72.0
 const DISCARD_PERSPECTIVE_ROTATION_X := DECK_PERSPECTIVE_ROTATION_X
 const DISCARD_PERSPECTIVE_FOV := DECK_PERSPECTIVE_FOV
-const MAX_OFF_AXIS_ROTATION_Y := 30.0
 
 @onready var count_badge: Control = $DeckCountBadge
 @onready var count_label: Label = $DeckCountBadge/DeckCountLabel
@@ -24,7 +23,6 @@ var _card_count := 0
 var _discard_placeholder: TextureRect
 
 func _ready() -> void:
-	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_ensure_discard_placeholder()
 	# 运行时按真实剩余数量生成牌背；场景文件不再保存固定的三层示意节点。
 	set_card_count(0, false)
@@ -47,11 +45,7 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 		card_back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		card_back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		# 每张牌都保留完整牌背并独立完成透视，然后再按 Y 轴顺序叠加。
-		card_back.material = _create_perspective_material(
-			DECK_PERSPECTIVE_ROTATION_X,
-			DECK_PERSPECTIVE_FOV,
-			_perspective_rotation_y_for(draw_pile_anchor, DECK_PERSPECTIVE_FOV)
-		)
+		card_back.material = _create_perspective_material()
 		# 牌背保持与 HandView 同层；按“底层先创建、顶层后创建”的兄弟顺序完成覆盖。
 		card_back.z_index = 0
 		card_back.modulate = _layer_tint(depth)
@@ -66,14 +60,14 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 
 func _create_perspective_material(
 	rotation_x: float = DECK_PERSPECTIVE_ROTATION_X,
-	camera_fov: float = DECK_PERSPECTIVE_FOV,
-	rotation_y: float = 0.0
+	camera_fov: float = DECK_PERSPECTIVE_FOV
 ) -> ShaderMaterial:
 	var perspective_material := ShaderMaterial.new()
 	perspective_material.shader = PERSPECTIVE_SHADER
 	perspective_material.set_shader_parameter(&"fov", camera_fov)
 	perspective_material.set_shader_parameter(&"rot_x_deg", rotation_x)
-	perspective_material.set_shader_parameter(&"rot_y_deg", rotation_y)
+	# 抽牌与弃牌都平放在同一桌面上，不通过局部 Y 旋转伪造离轴观察。
+	perspective_material.set_shader_parameter(&"rot_y_deg", 0.0)
 	perspective_material.set_shader_parameter(&"cull_backface", false)
 	perspective_material.set_shader_parameter(&"use_front", true)
 	perspective_material.set_shader_parameter(&"uv_rect", Vector4(0.0, 0.0, 1.0, 1.0))
@@ -95,45 +89,10 @@ func _ensure_discard_placeholder() -> void:
 	_discard_placeholder.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_discard_placeholder.material = _create_perspective_material(
 		DISCARD_PERSPECTIVE_ROTATION_X,
-		DISCARD_PERSPECTIVE_FOV,
-		_perspective_rotation_y_for(discard_pile_anchor, DISCARD_PERSPECTIVE_FOV)
+		DISCARD_PERSPECTIVE_FOV
 	)
 	_discard_placeholder.z_index = 1
 	add_child(_discard_placeholder)
-
-func _perspective_rotation_y_for(anchor: Control, camera_fov: float) -> float:
-	# 使用同一台位于屏幕 X 中心的虚拟相机：左、右牌的离轴角度互为镜像，中心点严格为 0。
-	var viewport_size := get_viewport_rect().size
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return 0.0
-	var focal_length := viewport_size.y * 0.5 / tan(deg_to_rad(camera_fov) * 0.5)
-	var card_center_x := anchor.global_position.x + CARD_SIZE.x * 0.5
-	var offset_from_center := card_center_x - viewport_size.x * 0.5
-	return clampf(
-		-rad_to_deg(atan(offset_from_center / focal_length)),
-		-MAX_OFF_AXIS_ROTATION_Y,
-		MAX_OFF_AXIS_ROTATION_Y
-	)
-
-func _on_viewport_size_changed() -> void:
-	# Control 锚点会在当前帧末尾完成重排，下一帧再读取全局位置。
-	call_deferred("_refresh_off_axis_perspective")
-
-func _refresh_off_axis_perspective() -> void:
-	var draw_rotation_y := _perspective_rotation_y_for(draw_pile_anchor, DECK_PERSPECTIVE_FOV)
-	for child in get_children():
-		if child is TextureRect and child.name.begins_with("PileCard"):
-			var pile_material := child.material as ShaderMaterial
-			if pile_material != null:
-				pile_material.set_shader_parameter(&"rot_y_deg", draw_rotation_y)
-	if is_instance_valid(_discard_placeholder):
-		var discard_material := _discard_placeholder.material as ShaderMaterial
-		if discard_material != null:
-			discard_material.set_shader_parameter(
-				&"rot_y_deg",
-				_perspective_rotation_y_for(discard_pile_anchor, DISCARD_PERSPECTIVE_FOV)
-			)
-
 func card_count() -> int:
 	return _card_count
 
