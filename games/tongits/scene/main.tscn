@@ -173,6 +173,14 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_deck_pile")
 
+[node name="DeckBackground" type="Panel" parent="DeckArea"]
+z_index = -1
+layout_mode = 0
+offset_right = 160.0
+offset_bottom = 112.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
+
 [node name="DeckCountBadge" type="Panel" parent="DeckArea" unique_id=1842334798]
 visible = false
 z_index = 100

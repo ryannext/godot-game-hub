@@ -66,7 +66,8 @@ func _deal_hand() -> void:
 	hand_view.clear_selection()
 	# 玩家收到的 13 张牌由 HandView 自身形成真实牌堆，剩余牌堆此时尚未生成。
 	deck_area.call("set_card_count", 0, false)
-	deck_area.visible = false
+	# 牌堆背景属于固定桌面槽位；发牌阶段只清空牌层，不隐藏整个 DeckArea。
+	deck_area.visible = true
 	hand_view.prepare_deal_animation()
 	# 固定基础 seed 加计数既方便复现，也能让“重新发牌”得到不同手牌。
 	_server.start_deal(20260828 + _deal_counter)
