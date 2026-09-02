@@ -5,7 +5,7 @@ const CARD_BACK_TEXTURE := preload("res://games/tongits/res/images/tip/card_back
 const TABLE_SPLIT_CARD_SHADER := preload("res://games/tongits/assets/shaders/table_split_card.gdshader")
 const CARD_SIZE := Vector2(67.2, 90.0)
 const COUNT_BADGE_OFFSET := Vector2(15.6, 28.0)
-const LAYER_OFFSET_Y := 1.0
+const LAYER_OFFSET_Y := 0.8
 const LEFT_HALF_PIVOT_X := 1.0
 const RIGHT_HALF_PIVOT_X := 0.0
 const TABLE_FAR_SCALE := 0.94
@@ -57,7 +57,6 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	var perspective_material := ShaderMaterial.new()
 	perspective_material.shader = TABLE_SPLIT_CARD_SHADER
-	perspective_material.set_shader_parameter(&"uv_rect", Vector4(0.0, 0.0, 1.0, 1.0))
 	perspective_material.set_shader_parameter(&"item_size_px", CARD_SIZE)
 	perspective_material.set_shader_parameter(&"pivot_x", pivot_x)
 	perspective_material.set_shader_parameter(&"far_scale", TABLE_FAR_SCALE)
