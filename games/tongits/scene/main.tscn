@@ -67,6 +67,20 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_brown"]
+bg_color = Color(0.58, 0.25, 0.13, 0.96)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_action_purple"]
+bg_color = Color(0.32, 0.25, 0.62, 0.96)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
 [node name="Main" type="Control" unique_id=1692674004]
 layout_mode = 3
 anchors_preset = 15
@@ -253,20 +267,27 @@ grow_vertical = 0
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="MoveLeftButton" type="Button" parent="ActionBar" unique_id=695466476]
+[node name="DiscardButton" type="Button" parent="ActionBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 48)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_action_blue")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_action_blue_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_action_blue")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
-disabled = true
-text = "←"
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_brown")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_brown")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_brown")
+text = "弃牌"
+
+[node name="PlayMeldButton" type="Button" parent="ActionBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_orange")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_orange")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_orange")
+text = "打牌组"
 
 [node name="GroupActionButton" type="Button" parent="ActionBar" unique_id=685989345]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(132, 48)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_action_green")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_action_green_pressed")
@@ -275,16 +296,23 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
 disabled = true
 text = "成组"
 
-[node name="MoveRightButton" type="Button" parent="ActionBar" unique_id=1407578516]
+[node name="LayoffButton" type="Button" parent="ActionBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 48)
+custom_minimum_size = Vector2(100, 48)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_action_purple")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_action_purple")
+theme_override_styles/hover = SubResource("StyleBoxFlat_action_purple")
+text = "补牌"
+
+[node name="DrawButton" type="Button" parent="ActionBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_action_blue")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_action_blue_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_blue")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
-disabled = true
-text = "→"
+text = "摸牌"
 
 [node name="SortControlBar" type="HBoxContainer" parent="." unique_id=2012075179]
 layout_mode = 1

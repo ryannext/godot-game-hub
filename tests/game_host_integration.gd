@@ -128,11 +128,6 @@ func _validate_hand_simulator() -> bool:
 	simulator.create_group(second_group_ids)
 	state = simulator.snapshot()
 	var second_group_id := int(state.groups[-1].group_id)
-	simulator.move_group(second_group_id, -1)
-	state = simulator.snapshot()
-	if int(state.groups[-2].group_id) != second_group_id:
-		_fail("牌组左右顺序调整失败")
-		return false
 	simulator.dissolve_group(second_group_id)
 	state = simulator.snapshot()
 	if state.groups.size() != base_group_count + 1 or state.loose_card_ids.size() != base_loose_count - 2:
@@ -162,6 +157,13 @@ func _is_snapshot_sorted(state: Dictionary, mode: int) -> bool:
 func _validate_hand_ui(module: Control) -> bool:
 	var hand_view := module.get_node("HandView") as TongitsHandView
 	var group_action := module.get_node("ActionBar/GroupActionButton") as Button
+	for button_name in ["DiscardButton", "PlayMeldButton", "LayoffButton", "DrawButton"]:
+		if not module.has_node("ActionBar/%s" % button_name):
+			_fail("操作区缺少按钮：%s" % button_name)
+			return false
+	if module.has_node("ActionBar/MoveLeftButton") or module.has_node("ActionBar/MoveRightButton"):
+		_fail("操作区仍然保留牌组左右移动按钮")
+		return false
 	var auto_arrange := module.get_node("SortControlBar/AutoArrangeButton") as Button
 	var sort_rule := module.get_node("SortControlBar/SortRuleButton") as Button
 	var initial_state: Dictionary = module.hand_snapshot()

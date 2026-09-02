@@ -5,8 +5,6 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var auto_arrange_button: Button = %AutoArrangeButton
 @onready var sort_rule_button: Button = %SortRuleButton
 @onready var group_action_button: Button = %GroupActionButton
-@onready var move_left_button: Button = %MoveLeftButton
-@onready var move_right_button: Button = %MoveRightButton
 @onready var deck_area: Control = %DeckArea
 @onready var deck_count_label: Label = %DeckCountLabel
 
@@ -27,8 +25,6 @@ func _ready() -> void:
 	auto_arrange_button.toggled.connect(_on_auto_arrange_toggled)
 	sort_rule_button.pressed.connect(_server.toggle_sort_mode)
 	group_action_button.pressed.connect(_on_group_action_pressed)
-	move_left_button.pressed.connect(func(): _server.move_group(_selected_group_id, -1))
-	move_right_button.pressed.connect(func(): _server.move_group(_selected_group_id, 1))
 	hand_view.selection_changed.connect(_on_selection_changed)
 	hand_view.move_card_requested.connect(_server.move_card)
 	hand_view.last_deal_card_started.connect(_on_last_deal_card_started)
@@ -121,14 +117,9 @@ func _update_action_buttons() -> void:
 	if _selected_group_id >= 0:
 		group_action_button.text = "解散组"
 		group_action_button.disabled = false
-		var index := hand_view.group_index(_selected_group_id)
-		move_left_button.disabled = index <= 0
-		move_right_button.disabled = index < 0 or index >= hand_view.group_count() - 1
 	else:
 		group_action_button.text = "成组"
 		group_action_button.disabled = _selected_loose_ids.size() < 2
-		move_left_button.disabled = true
-		move_right_button.disabled = true
 
 func _on_command_rejected(message: String) -> void:
 	hand_view.reject_pending_move()

@@ -123,17 +123,6 @@ func dissolve_group(group_id: int) -> void:
 		_sort_loose_cards()
 	_commit()
 
-func move_group(group_id: int, direction: int) -> void:
-	var source_index := _find_group_index(group_id)
-	var target_index := source_index + signi(direction)
-	if source_index < 0 or target_index < 0 or target_index >= _groups.size():
-		_reject("牌组已经位于该方向的边界")
-		return
-	var temporary := _groups[source_index]
-	_groups[source_index] = _groups[target_index]
-	_groups[target_index] = temporary
-	_commit()
-
 func move_card(card_id: int, target_area: StringName, target_group_id: int, target_index: int) -> void:
 	if not _cards.has(card_id):
 		_reject("手牌中不存在这张牌")
