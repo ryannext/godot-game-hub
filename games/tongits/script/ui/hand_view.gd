@@ -13,6 +13,8 @@ class GroupVisualState:
 
 signal selection_changed(loose_card_ids: Array, selected_group_id: int)
 signal move_card_requested(card_id: int, target_area: StringName, target_group_id: int, target_index: int)
+# 发牌牌背全部落位并翻为牌面后通知主场景，此时才能重新生成剩余牌堆。
+signal deal_animation_finished
 
 const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
 const GROUP_BADGE_OVERLAY_SCRIPT := preload("res://games/tongits/script/ui/group_badge_overlay.gd")
@@ -550,6 +552,7 @@ func _relayout_deal() -> void:
 		deal_order += 1
 	if _deal_cards_remaining <= 0:
 		_set_card_interaction_enabled(true)
+		_finish_deal_animation()
 	else:
 		set_process(true)
 	queue_redraw()
@@ -602,8 +605,13 @@ func _on_deal_card_finished(card_id: int, tween: Tween) -> void:
 	_move_targets.erase(card_id)
 	_deal_cards_remaining = maxi(0, _deal_cards_remaining - 1)
 	if _deal_cards_remaining == 0:
-		# 发牌全部翻面后也用同一段收拢/展开动画整理为默认散牌顺序。
-		_relayout_collapse_expand()
+		_finish_deal_animation()
+
+func _finish_deal_animation() -> void:
+	# 剩余牌堆在所有发牌牌背离开后再出现，避免静态牌堆与飞牌叠成偏移的双重牌堆。
+	deal_animation_finished.emit()
+	# 发牌全部翻面后也用同一段收拢/展开动画整理为默认散牌顺序。
+	_relayout_collapse_expand()
 
 func _set_deal_card_final_z(card_id: int, tween: Tween, target_z: int) -> void:
 	if _move_tweens.get(card_id) != tween:

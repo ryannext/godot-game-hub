@@ -175,10 +175,10 @@ mouse_filter = 2
 [node name="CardBackBottom" type="TextureRect" parent="DeckArea" unique_id=844831974]
 modulate = Color(0.62, 0.62, 0.68, 1)
 layout_mode = 0
-offset_left = 11.0
-offset_top = 11.0
-offset_right = 83.0
-offset_bottom = 113.0
+offset_left = 7.4
+offset_top = 17.0
+offset_right = 74.6
+offset_bottom = 107.0
 mouse_filter = 2
 texture = ExtResource("4_card_back")
 expand_mode = 1
@@ -187,10 +187,10 @@ stretch_mode = 5
 [node name="CardBackMiddle" type="TextureRect" parent="DeckArea" unique_id=747034088]
 modulate = Color(0.8, 0.8, 0.86, 1)
 layout_mode = 0
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 80.0
-offset_bottom = 110.0
+offset_left = 7.4
+offset_top = 14.0
+offset_right = 74.6
+offset_bottom = 104.0
 mouse_filter = 2
 texture = ExtResource("4_card_back")
 expand_mode = 1
@@ -198,10 +198,10 @@ stretch_mode = 5
 
 [node name="CardBackTop" type="TextureRect" parent="DeckArea" unique_id=331422053]
 layout_mode = 0
-offset_left = 5.0
-offset_top = 5.0
-offset_right = 77.0
-offset_bottom = 107.0
+offset_left = 7.4
+offset_top = 11.0
+offset_right = 74.6
+offset_bottom = 101.0
 mouse_filter = 2
 texture = ExtResource("4_card_back")
 expand_mode = 1
@@ -210,10 +210,10 @@ stretch_mode = 5
 [node name="DeckCountBadge" type="Panel" parent="DeckArea" unique_id=1842334798]
 z_index = 2
 layout_mode = 0
-offset_left = 24.0
-offset_top = 40.200012
-offset_right = 60.0
-offset_bottom = 74.20001
+offset_left = 23.0
+offset_top = 39.0
+offset_right = 59.0
+offset_bottom = 73.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_deck_count")
 

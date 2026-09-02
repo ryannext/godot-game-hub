@@ -7,6 +7,7 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var group_action_button: Button = %GroupActionButton
 @onready var move_left_button: Button = %MoveLeftButton
 @onready var move_right_button: Button = %MoveRightButton
+@onready var deck_area: Control = %DeckArea
 @onready var deck_count_label: Label = %DeckCountLabel
 
 var _server := TongitsHandServerSimulator.new()
@@ -15,6 +16,7 @@ var _shutdown := false
 var _selected_loose_ids: Array[int] = []
 var _selected_group_id := -1
 var _deal_counter := 0
+var _deck_remaining_count := 0
 
 func _ready() -> void:
 	%ExitButton.pressed.connect(func(): exit_requested.emit())
@@ -26,6 +28,7 @@ func _ready() -> void:
 	move_right_button.pressed.connect(func(): _server.move_group(_selected_group_id, 1))
 	hand_view.selection_changed.connect(_on_selection_changed)
 	hand_view.move_card_requested.connect(_server.move_card)
+	hand_view.deal_animation_finished.connect(_on_deal_animation_finished)
 	_server.snapshot_changed.connect(_on_snapshot_changed)
 	_server.command_rejected.connect(_on_command_rejected)
 
@@ -61,6 +64,8 @@ func shutdown_game() -> void:
 func _deal_hand() -> void:
 	_deal_counter += 1
 	hand_view.clear_selection()
+	# 发牌阶段由实际飞出的牌背组成牌堆；先隐藏上一局的静态剩余牌堆。
+	deck_area.visible = false
 	hand_view.prepare_deal_animation()
 	# 固定基础 seed 加计数既方便复现，也能让“重新发牌”得到不同手牌。
 	_server.start_deal(20260828 + _deal_counter)
@@ -68,10 +73,15 @@ func _deal_hand() -> void:
 func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	hand_view.apply_snapshot(snapshot)
 	var mode := int(snapshot.sort_mode)
-	deck_count_label.text = str(int(snapshot.get("deck_remaining_count", 0)))
+	_deck_remaining_count = int(snapshot.get("deck_remaining_count", 0))
+	deck_count_label.text = str(_deck_remaining_count)
 	auto_arrange_button.set_pressed_no_signal(bool(snapshot.get("auto_arrange_enabled", true)))
 	sort_rule_button.text = "点数优先" if mode == TongitsHandServerSimulator.SortMode.RANK_SUIT else "花色优先"
 	_update_action_buttons()
+
+func _on_deal_animation_finished() -> void:
+	# 发牌完成后按服务端快照重新显示剩余牌堆；没有剩余牌时保持隐藏。
+	deck_area.visible = _deck_remaining_count > 0
 
 func _on_selection_changed(loose_card_ids: Array, selected_group_id: int) -> void:
 	_selected_loose_ids.assign(loose_card_ids)
