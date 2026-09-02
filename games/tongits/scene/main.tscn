@@ -191,8 +191,10 @@ script = ExtResource("4_deck_pile")
 [node name="DeckBackground" type="Control" parent="DeckArea" unique_id=1885479020]
 z_index = -1
 anchors_preset = 0
-offset_right = 180.0
-offset_bottom = 112.0
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 192.0
+offset_bottom = 124.0
 mouse_filter = 2
 
 [node name="DrawPileAnchor" type="Control" parent="DeckArea" unique_id=1668991866]
