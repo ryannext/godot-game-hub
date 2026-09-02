@@ -28,6 +28,17 @@ var _revision := 0
 var _next_group_id := 1
 var _deck_remaining_count := 0
 
+func reset_table() -> void:
+	# 每次测试发牌前先提交一份空桌快照，确保旧手牌、牌组和剩余牌堆全部移除。
+	_cards.clear()
+	_groups.clear()
+	_loose_card_ids.clear()
+	_next_group_id = 1
+	_deck_remaining_count = 0
+	_sort_mode = SortMode.RANK_SUIT
+	_auto_arrange_enabled = true
+	_commit()
+
 func start_deal(seed_value := 20260828) -> void:
 	_cards.clear()
 	_groups.clear()

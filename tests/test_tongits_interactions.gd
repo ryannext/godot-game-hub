@@ -40,6 +40,18 @@ func test_default_mode_is_rank_first_with_auto_arrange_enabled() -> void:
 	assert_eq(int(state.sort_mode), TongitsHandServerSimulator.SortMode.RANK_SUIT, "新局默认应为点数优先")
 	assert_eq(int(state.deck_remaining_count), 15, "三人局发完牌后牌堆应剩余 15 张")
 
+func test_reset_table_clears_cards_groups_and_deck() -> void:
+	var simulator := TongitsHandServerSimulator.new()
+	simulator.start_deal(20260829)
+	simulator.reset_table()
+	var state := simulator.snapshot()
+	assert_true(state.cards.is_empty(), "初始化桌面后不应保留手牌")
+	assert_true(state.groups.is_empty(), "初始化桌面后不应保留牌组")
+	assert_true(state.loose_card_ids.is_empty(), "初始化桌面后不应保留散牌")
+	assert_eq(int(state.deck_remaining_count), 0, "初始化桌面后不应显示剩余牌堆")
+	assert_true(bool(state.auto_arrange_enabled), "初始化桌面后应恢复默认自动排列")
+	assert_eq(int(state.sort_mode), TongitsHandServerSimulator.SortMode.RANK_SUIT, "初始化桌面后应恢复点数优先")
+
 func test_disabling_auto_arrange_preserves_current_layout() -> void:
 	var simulator := TongitsHandServerSimulator.new()
 	simulator.start_deal(20260829)

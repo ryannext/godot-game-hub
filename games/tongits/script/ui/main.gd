@@ -10,6 +10,8 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var deck_area: Control = %DeckArea
 @onready var deck_count_label: Label = %DeckCountLabel
 
+const DEAL_RESET_DELAY_SECONDS := 1.0
+
 var _server := TongitsHandServerSimulator.new()
 var _started := false
 var _shutdown := false
@@ -17,6 +19,7 @@ var _selected_loose_ids: Array[int] = []
 var _selected_group_id := -1
 var _deal_counter := 0
 var _deck_remaining_count := 0
+var _deal_request_generation := 0
 
 func _ready() -> void:
 	%ExitButton.pressed.connect(func(): exit_requested.emit())
@@ -50,7 +53,7 @@ func start_game() -> void:
 		return
 	_started = true
 	_shutdown = false
-	_deal_hand()
+	_initialize_empty_table()
 	print("[TongitsMain] local hand simulator ready")
 	ready_to_play.emit()
 
@@ -59,18 +62,29 @@ func shutdown_game() -> void:
 		return
 	_shutdown = true
 	_started = false
+	_deal_request_generation += 1
 	print("[TongitsMain] shutdown complete")
 
 func _deal_hand() -> void:
+	# 重复点击会取消上一次尚未开始的等待，并从新的空桌状态重新计时。
+	_deal_request_generation += 1
+	var request_generation := _deal_request_generation
+	_initialize_empty_table()
+	await get_tree().create_timer(DEAL_RESET_DELAY_SECONDS).timeout
+	if _shutdown or not _started or request_generation != _deal_request_generation:
+		return
+
 	_deal_counter += 1
-	hand_view.clear_selection()
-	# 玩家收到的 13 张牌由 HandView 自身形成真实牌堆，剩余牌堆此时尚未生成。
-	deck_area.call("set_card_count", 0, false)
-	# 牌堆背景属于固定桌面槽位；发牌阶段只清空牌层，不隐藏整个 DeckArea。
-	deck_area.visible = true
 	hand_view.prepare_deal_animation()
 	# 固定基础 seed 加计数既方便复现，也能让“重新发牌”得到不同手牌。
 	_server.start_deal(20260828 + _deal_counter)
+
+func _initialize_empty_table() -> void:
+	# 空桌阶段不保留上一局手牌、发牌层、弃牌占位或牌数徽章。
+	deck_area.call("set_card_count", 0, false)
+	deck_area.visible = false
+	_deck_remaining_count = 0
+	_server.reset_table()
 
 func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	hand_view.apply_snapshot(snapshot)
