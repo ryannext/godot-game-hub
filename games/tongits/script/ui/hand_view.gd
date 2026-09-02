@@ -45,7 +45,6 @@ const DECK_PERSPECTIVE_ROTATION_X := 10.0
 # 实际发牌按 Y 轴逐层排成牌堆，每发走一张便将剩余牌重新以 Y=0 居中。
 const DEAL_STACK_LAYER_OFFSET := 1.0
 const DEAL_INITIAL_STACK_HOLD_SECONDS := 0.12
-const DEAL_STACK_BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 const DEAL_REVEAL_MIN_SCALE := 0.7
 const DEAL_REVEAL_SHRINK_SECONDS := 0.05
 const DEAL_FACE_GROW_SECONDS := 0.10
@@ -545,7 +544,7 @@ func _relayout_deal() -> void:
 		)
 		view.scale = Vector2.ONE * DEAL_START_SCALE
 		view.perspective_rotation_x = DECK_PERSPECTIVE_ROTATION_X
-		view.modulate = _deal_stack_tint(deal_order, layout.entries.size())
+		view.modulate = Color.WHITE
 		view.show_back()
 		_deal_order_card_ids.append(card_id)
 		# 牌堆阶段按发牌顺序设置临时层级，保证当前要发的牌始终位于最上方。
@@ -657,7 +656,7 @@ func _prepare_deal_card_flight(card_id: int, tween: Tween, deal_order: int, anno
 	var remaining_count := _deal_order_card_ids.size() - deal_order - 1
 	var remaining_top_offset_y := -DEAL_STACK_LAYER_OFFSET * float(maxi(0, remaining_count - 1)) * 0.5
 	var origin := _deal_origin_local()
-	# 当前牌起飞时，所有剩余牌立即围绕 Y=0 重新居中，并同步刷新层次明暗。
+	# 当前牌起飞时，所有剩余牌立即围绕 Y=0 重新居中。
 	for later_order in range(deal_order + 1, _deal_order_card_ids.size()):
 		var later_view: TongitsCardView = _card_views.get(_deal_order_card_ids[later_order])
 		if later_view == null:
@@ -667,19 +666,9 @@ func _prepare_deal_card_flight(card_id: int, tween: Tween, deal_order: int, anno
 			0.0,
 			remaining_top_offset_y + DEAL_STACK_LAYER_OFFSET * remaining_index
 		)
-		later_view.modulate = _deal_stack_tint(
-			remaining_index,
-			remaining_count
-		)
 	if announce_last_card:
 		# 回调位于最后一张牌的位移动画之前，所以剩余牌堆会在它起飞时出现。
 		last_deal_card_started.emit()
-
-func _deal_stack_tint(depth: int, stack_size: int) -> Color:
-	if stack_size <= 1:
-		return Color.WHITE
-	var weight := float(depth) / float(stack_size - 1)
-	return Color.WHITE.lerp(DEAL_STACK_BOTTOM_TINT, weight)
 
 func _set_deal_card_final_z(card_id: int, tween: Tween, target_z: int) -> void:
 	if _move_tweens.get(card_id) != tween:

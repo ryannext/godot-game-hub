@@ -6,7 +6,6 @@ const TABLE_SPLIT_CARD_SHADER := preload("res://games/tongits/assets/shaders/tab
 const CARD_SIZE := Vector2(67.2, 90.0)
 const COUNT_BADGE_OFFSET := Vector2(15.6, 28.0)
 const LAYER_OFFSET_Y := 1.0
-const BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 const LEFT_HALF_PIVOT_X := 1.0
 const RIGHT_HALF_PIVOT_X := 0.0
 const TABLE_FAR_SCALE := 0.94
@@ -46,7 +45,6 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 		card_back.material = _create_table_half_material(LEFT_HALF_PIVOT_X)
 		# 牌背保持与 HandView 同层；按“底层先创建、顶层后创建”的兄弟顺序完成覆盖。
 		card_back.z_index = 0
-		card_back.modulate = _layer_tint(depth)
 		add_child(card_back)
 	count_badge.position = draw_pile_anchor.position + COUNT_BADGE_OFFSET + Vector2(0.0, top_offset_y)
 	count_label.text = str(_card_count)
@@ -89,10 +87,3 @@ func _clear_card_layers() -> void:
 		if child is TextureRect and child.name.begins_with("PileCard"):
 			remove_child(child)
 			child.queue_free()
-
-func _layer_tint(depth: int) -> Color:
-	if _card_count <= 1:
-		return Color.WHITE
-	# 越靠下的牌稍暗，使每一层 1px 的边缘在相同牌背纹理下仍保持可辨识。
-	var weight := float(depth) / float(_card_count - 1)
-	return Color.WHITE.lerp(BOTTOM_TINT, weight)
