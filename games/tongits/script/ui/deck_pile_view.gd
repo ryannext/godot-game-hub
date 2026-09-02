@@ -5,9 +5,9 @@ const CARD_BACK_TEXTURE := preload("res://games/tongits/res/images/tip/card_back
 const CARD_SIZE := Vector2(67.2, 90.0)
 const TOP_CARD_POSITION := Vector2(7.4, 11.0)
 const COUNT_BADGE_POSITION := Vector2(23.0, 39.0)
-const LAYER_OFFSET_Y := 3.0
-# 13 张起始牌堆以中心对称展开，固定底边为 +18px；后续牌堆共用这条底边。
-const STACK_BOTTOM_OFFSET_Y := 18.0
+const LAYER_OFFSET_Y := 1.0
+# 13 张起始牌堆以中心对称展开，固定底边为 +6px；后续牌堆共用这条底边。
+const STACK_BOTTOM_OFFSET_Y := 6.0
 const BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 
 @onready var count_badge: Control = $DeckCountBadge
@@ -57,6 +57,6 @@ func _clear_card_layers() -> void:
 func _layer_tint(depth: int) -> Color:
 	if _card_count <= 1:
 		return Color.WHITE
-	# 越靠下的牌稍暗，使每一层 3px 的边缘在相同牌背纹理下仍清晰可见。
+	# 越靠下的牌稍暗，使每一层 1px 的边缘在相同牌背纹理下仍保持可辨识。
 	var weight := float(depth) / float(_card_count - 1)
 	return Color.WHITE.lerp(BOTTOM_TINT, weight)

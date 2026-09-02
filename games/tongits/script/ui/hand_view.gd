@@ -40,9 +40,9 @@ const DEAL_CARD_STAGGER_SECONDS := 0.075
 const DEAL_Z_SWITCH_SECONDS := 0.075
 const DEAL_START_SCALE := 0.6
 # 13 张实际发牌按 Y 轴逐层排成牌堆，每发走一张便将剩余牌整体收紧一层。
-const DEAL_STACK_LAYER_OFFSET := 3.0
-# 13 层以 DeckArea 中心对称展开：首层 -18px，中层 0px，底层 +18px。
-const DEAL_STACK_TOP_OFFSET_Y := -18.0
+const DEAL_STACK_LAYER_OFFSET := 1.0
+# 13 层以 DeckArea 中心对称展开：首层 -6px，中层 0px，底层 +6px。
+const DEAL_STACK_TOP_OFFSET_Y := -6.0
 const DEAL_INITIAL_STACK_HOLD_SECONDS := 0.12
 const DEAL_STACK_BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 const DEAL_REVEAL_MIN_SCALE := 0.7
