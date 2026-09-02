@@ -3,19 +3,25 @@
 [ext_resource type="Script" uid="uid://n3meikk3xaiy" path="res://games/tongits/script/ui/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d0kqsd6d88l6q" path="res://games/tongits/script/ui/hand_view.gd" id="2_hand"]
 [ext_resource type="Texture2D" uid="uid://p2r1dtm0pl8c" path="res://games/tongits/assets/backgrounds/tongits_cocos_game_bg.jpg" id="3_table_bg"]
-[ext_resource type="Script" path="res://games/tongits/script/ui/deck_pile_view.gd" id="4_deck_pile"]
+[ext_resource type="Script" uid="uid://cgjcq5h0oib75" path="res://games/tongits/script/ui/deck_pile_view.gd" id="4_deck_pile"]
+[ext_resource type="Shader" uid="uid://jtaaxv14p0x3" path="res://games/tongits/assets/shaders/table_perspective_zones.gdshader" id="5_table_shader"]
+[ext_resource type="Script" uid="uid://bicmqvnxa43oh" path="res://games/tongits/script/ui/table_perspective_zones.gd" id="6_table_zones"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_meld_area"]
-bg_color = Color(0.07, 0.31, 0.68, 0.16)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.38, 0.72, 1, 0.58)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_table_zones"]
+shader = ExtResource("5_table_shader")
+shader_parameter/viewport_size = Vector2(1280, 720)
+shader_parameter/left_zone = Vector4(0.12, 0.12, 0.24, 0.31)
+shader_parameter/deck_zone = Vector4(0.43, 0.12, 0.13, 0.16)
+shader_parameter/right_zone = Vector4(0.64, 0.12, 0.24, 0.31)
+shader_parameter/player_zone = Vector4(0.11, 0.48, 0.78, 0.13)
+shader_parameter/far_scale = 0.7
+shader_parameter/near_scale = 1.18
+shader_parameter/corner_radius_px = 13.0
+shader_parameter/border_width_px = 2.0
+shader_parameter/border_color = Color(0.38, 0.72, 1, 0.58)
+shader_parameter/fill_color = Color(0.07, 0.31, 0.68, 0.16)
+shader_parameter/deck_border_color = Color(0.32, 0.55, 0.88, 0.36)
+shader_parameter/deck_fill_color = Color(0.035, 0.12, 0.29, 0.52)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_deck_count"]
 bg_color = Color(1, 0.78, 0.08, 1)
@@ -114,10 +120,24 @@ offset_bottom = 66.0
 grow_horizontal = 0
 text = "测试发牌"
 
-[node name="OpponentLeftMeldArea" type="Panel" parent="." unique_id=413263389]
+[node name="TablePerspectiveZones" type="ColorRect" parent="." unique_id=1103509011]
+material = SubResource("ShaderMaterial_table_zones")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_table_zones")
+left_zone_path = NodePath("../OpponentLeftMeldArea")
+deck_zone_path = NodePath("../DeckArea/DeckBackground")
+right_zone_path = NodePath("../OpponentRightMeldArea")
+player_zone_path = NodePath("../PlayerMeldArea")
+
+[node name="OpponentLeftMeldArea" type="Control" parent="." unique_id=413263389]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = -1
 anchor_left = 0.12
 anchor_top = 0.12
 anchor_right = 0.36
@@ -125,12 +145,10 @@ anchor_bottom = 0.43
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
 
-[node name="OpponentRightMeldArea" type="Panel" parent="." unique_id=1024056887]
+[node name="OpponentRightMeldArea" type="Control" parent="." unique_id=1024056887]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = -1
 anchor_left = 0.64
 anchor_top = 0.12
 anchor_right = 0.88
@@ -138,12 +156,10 @@ anchor_bottom = 0.43
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
 
-[node name="PlayerMeldArea" type="Panel" parent="." unique_id=1860040659]
+[node name="PlayerMeldArea" type="Control" parent="." unique_id=1860040659]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = -1
 anchor_left = 0.3
 anchor_top = 0.48
 anchor_right = 0.7
@@ -154,7 +170,6 @@ offset_bottom = 7.9999695
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
 
 [node name="DeckArea" type="Control" parent="." unique_id=334828628]
 unique_name_in_owner = true
@@ -166,20 +181,35 @@ anchor_right = 0.5
 anchor_bottom = 0.39
 offset_left = -90.0
 offset_top = -198.79999
-offset_right = -8.0
+offset_right = 90.0
 offset_bottom = -86.79999
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_deck_pile")
 
-[node name="DeckBackground" type="Panel" parent="DeckArea"]
+[node name="DeckBackground" type="Control" parent="DeckArea" unique_id=1885479020]
 z_index = -1
-layout_mode = 0
-offset_right = 160.0
+anchors_preset = 0
+offset_right = 180.0
 offset_bottom = 112.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_meld_area")
+
+[node name="DrawPileAnchor" type="Control" parent="DeckArea" unique_id=1668991866]
+anchors_preset = 0
+offset_left = 15.0
+offset_top = 11.0
+offset_right = 82.2
+offset_bottom = 101.0
+mouse_filter = 2
+
+[node name="DiscardPileAnchor" type="Control" parent="DeckArea" unique_id=1245009461]
+anchors_preset = 0
+offset_left = 97.8
+offset_top = 11.0
+offset_right = 165.0
+offset_bottom = 101.0
+mouse_filter = 2
 
 [node name="DeckCountBadge" type="Panel" parent="DeckArea" unique_id=1842334798]
 visible = false
@@ -260,9 +290,9 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -278.0
-offset_top = -270.0
+offset_top = -260.0
 offset_right = -28.0
-offset_bottom = -218.0
+offset_bottom = -208.0
 grow_horizontal = 0
 grow_vertical = 0
 theme_override_constants/separation = 10
@@ -301,3 +331,4 @@ grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 1
 script = ExtResource("2_hand")
+deal_origin_node_path = NodePath("../DeckArea/DrawPileAnchor")

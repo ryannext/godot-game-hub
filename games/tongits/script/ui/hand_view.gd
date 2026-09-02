@@ -39,6 +39,9 @@ const DEAL_CARD_ANIMATION_SECONDS := 0.22
 const DEAL_CARD_STAGGER_SECONDS := 0.075
 const DEAL_Z_SWITCH_SECONDS := 0.075
 const DEAL_START_SCALE := 0.6
+const HAND_PERSPECTIVE_ROTATION_X := 2.0
+const DRAG_PERSPECTIVE_ROTATION_X := 1.0
+const DECK_PERSPECTIVE_ROTATION_X := 10.0
 # 13 张实际发牌按 Y 轴逐层排成牌堆，每发走一张便将剩余牌整体收紧一层。
 const DEAL_STACK_LAYER_OFFSET := 1.0
 # 13 层以 DeckArea 中心对称展开：首层 -6px，中层 0px，底层 +6px。
@@ -249,6 +252,7 @@ func _on_card_drag_started(card_id: int, pointer_global: Vector2) -> void:
 	_preview_index = source.index
 	_drag_is_over_hand = true
 	view.z_index = 1000
+	view.perspective_rotation_x = DRAG_PERSPECTIVE_ROTATION_X
 	_position_dragged_view(pointer_global)
 	_relayout(true)
 
@@ -278,6 +282,7 @@ func _on_card_drag_ended(card_id: int, pointer_global: Vector2) -> void:
 	var target_group_id := _preview_group_id
 	var target_index := _preview_index
 	var view: TongitsCardView = _card_views[card_id]
+	view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
 	view.z_index = 0
 	_dragging_card_id = -1
 	_preview_area = &""
@@ -312,6 +317,7 @@ func _cancel_active_drag(animated: bool) -> void:
 	if view != null:
 		view.z_index = 0
 		view.cancel_interaction()
+		view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
 	_dragging_card_id = -1
 	_preview_area = &""
 	_preview_group_id = -1
@@ -407,6 +413,7 @@ func _relayout(animated: bool) -> void:
 		if view == null:
 			continue
 		var target: Vector2 = layout.card_positions[card_id]
+		view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
 		view.z_index = int(layout.card_order.get(card_id, 0))
 		var running_tween: Tween = _move_tweens.get(int(card_id))
 		var previous_target: Vector2 = _move_targets.get(int(card_id), view.position)
@@ -538,6 +545,7 @@ func _relayout_deal() -> void:
 			DEAL_STACK_TOP_OFFSET_Y + DEAL_STACK_LAYER_OFFSET * deal_order
 		)
 		view.scale = Vector2.ONE * DEAL_START_SCALE
+		view.perspective_rotation_x = DECK_PERSPECTIVE_ROTATION_X
 		view.modulate = _deal_stack_tint(deal_order, layout.entries.size())
 		view.show_back()
 		_deal_order_card_ids.append(card_id)
@@ -557,6 +565,13 @@ func _relayout_deal() -> void:
 		tween.tween_property(view, "position", target, DEAL_CARD_ANIMATION_SECONDS).set_trans(Tween.TRANS_LINEAR)
 		# 飞行阶段牌背保持正向，并从起点到落点持续线性放大，避免前半程尺寸变化不明显。
 		tween.parallel().tween_property(view, "scale", Vector2.ONE, DEAL_CARD_ANIMATION_SECONDS).set_trans(Tween.TRANS_LINEAR)
+		# 牌从桌面牌堆飞向玩家时同步由桌面倾角恢复为近乎正面的手牌角度。
+		tween.parallel().tween_property(
+			view,
+			"perspective_rotation_x",
+			HAND_PERSPECTIVE_ROTATION_X,
+			DEAL_CARD_ANIMATION_SECONDS
+		).set_trans(Tween.TRANS_LINEAR)
 		# 飞离牌堆后切换为最终手牌层级；切换发生在空中，不会在落位时闪动。
 		tween.parallel().tween_callback(
 			_set_deal_card_final_z.bind(card_id, tween, target_z)
@@ -673,6 +688,7 @@ func _prepare_deal_card_reveal(card_id: int, tween: Tween, target: Vector2) -> v
 	if view != null:
 		view.position = target
 		view.scale = Vector2.ONE
+		view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
 
 func _cancel_deal_animation_runtime() -> void:
 	_deal_cards_remaining = 0
@@ -683,6 +699,7 @@ func _cancel_deal_animation_runtime() -> void:
 		view.scale = Vector2.ONE
 		view.rotation = 0.0
 		view.modulate = Color.WHITE
+		view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
 		view.show_front()
 	_set_card_interaction_enabled(true)
 
