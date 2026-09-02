@@ -28,7 +28,7 @@ func _ready() -> void:
 	move_right_button.pressed.connect(func(): _server.move_group(_selected_group_id, 1))
 	hand_view.selection_changed.connect(_on_selection_changed)
 	hand_view.move_card_requested.connect(_server.move_card)
-	hand_view.deal_animation_finished.connect(_on_deal_animation_finished)
+	hand_view.last_deal_card_started.connect(_on_last_deal_card_started)
 	_server.snapshot_changed.connect(_on_snapshot_changed)
 	_server.command_rejected.connect(_on_command_rejected)
 
@@ -79,8 +79,8 @@ func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	sort_rule_button.text = "点数优先" if mode == TongitsHandServerSimulator.SortMode.RANK_SUIT else "花色优先"
 	_update_action_buttons()
 
-func _on_deal_animation_finished() -> void:
-	# 发牌完成后按服务端快照重新显示剩余牌堆；没有剩余牌时保持隐藏。
+func _on_last_deal_card_started() -> void:
+	# 最后一张牌一离开起始牌堆，就按服务端快照在原位生成剩余牌堆。
 	deck_area.visible = _deck_remaining_count > 0
 
 func _on_selection_changed(loose_card_ids: Array, selected_group_id: int) -> void:

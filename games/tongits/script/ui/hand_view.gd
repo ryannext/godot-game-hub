@@ -13,7 +13,9 @@ class GroupVisualState:
 
 signal selection_changed(loose_card_ids: Array, selected_group_id: int)
 signal move_card_requested(card_id: int, target_area: StringName, target_group_id: int, target_index: int)
-# 发牌牌背全部落位并翻为牌面后通知主场景，此时才能重新生成剩余牌堆。
+# 最后一张牌刚开始飞离牌堆时通知主场景，此时即可在它下方生成剩余牌堆。
+signal last_deal_card_started
+# 发牌牌背全部落位并翻为牌面后的完整结束事件，供后续流程衔接使用。
 signal deal_animation_finished
 
 const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
@@ -37,6 +39,9 @@ const DEAL_CARD_ANIMATION_SECONDS := 0.22
 const DEAL_CARD_STAGGER_SECONDS := 0.075
 const DEAL_Z_SWITCH_SECONDS := 0.075
 const DEAL_START_SCALE := 0.6
+# 起始牌堆和剩余牌堆使用同一套三层表现：X 不偏移，Y 每层错开 3px。
+const DEAL_STACK_LAYER_OFFSET := 3.0
+const DEAL_STACK_MAX_VISIBLE_DEPTH := 2
 const DEAL_REVEAL_MIN_SCALE := 0.7
 const DEAL_REVEAL_SHRINK_SECONDS := 0.05
 const DEAL_FACE_GROW_SECONDS := 0.10
@@ -522,7 +527,9 @@ func _relayout_deal() -> void:
 		var target: Vector2 = layout.card_positions[card_id]
 		var target_z := int(layout.card_order.get(card_id, deal_order))
 		_stop_card_tween(card_id)
-		view.position = origin
+		# 超过三层的牌共用最底层位置，既保留牌堆厚度，又避免 13 张牌沿 Y 轴拉得过长。
+		var stack_depth := mini(deal_order, DEAL_STACK_MAX_VISIBLE_DEPTH)
+		view.position = origin + Vector2(0.0, DEAL_STACK_LAYER_OFFSET * stack_depth)
 		view.scale = Vector2.ONE * DEAL_START_SCALE
 		view.show_back()
 		# 牌堆阶段按发牌顺序设置临时层级，保证当前要发的牌始终位于最上方。
@@ -531,6 +538,9 @@ func _relayout_deal() -> void:
 		tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		if deal_order > 0:
 			tween.tween_interval(DEAL_CARD_STAGGER_SECONDS * deal_order)
+		if deal_order == layout.entries.size() - 1:
+			# 回调位于最后一张牌的位移动画之前，所以剩余牌堆会在它起飞时出现。
+			tween.tween_callback(_emit_last_deal_card_started)
 		# 位移与缩放使用同一线性进度，避免位置提前贴近手牌、牌背却仍未完成放大的堆叠现象。
 		tween.tween_property(view, "position", target, DEAL_CARD_ANIMATION_SECONDS).set_trans(Tween.TRANS_LINEAR)
 		# 飞行阶段牌背保持正向，并从起点到落点持续线性放大，避免前半程尺寸变化不明显。
@@ -608,10 +618,12 @@ func _on_deal_card_finished(card_id: int, tween: Tween) -> void:
 		_finish_deal_animation()
 
 func _finish_deal_animation() -> void:
-	# 剩余牌堆在所有发牌牌背离开后再出现，避免静态牌堆与飞牌叠成偏移的双重牌堆。
 	deal_animation_finished.emit()
 	# 发牌全部翻面后也用同一段收拢/展开动画整理为默认散牌顺序。
 	_relayout_collapse_expand()
+
+func _emit_last_deal_card_started() -> void:
+	last_deal_card_started.emit()
 
 func _set_deal_card_final_z(card_id: int, tween: Tween, target_z: int) -> void:
 	if _move_tweens.get(card_id) != tween:
