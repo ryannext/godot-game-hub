@@ -38,6 +38,9 @@ const ARRANGE_EXPAND_SECONDS := 0.26
 const DEAL_CARD_ANIMATION_SECONDS := 0.22
 const DEAL_CARD_STAGGER_SECONDS := 0.075
 const DEAL_Z_SWITCH_SECONDS := 0.075
+# 飞牌仍覆盖牌堆时保持桌面透视；离开牌堆并切层后才转向手牌视角。
+const DEAL_PERSPECTIVE_HOLD_SECONDS := DEAL_Z_SWITCH_SECONDS
+const DEAL_PERSPECTIVE_TRANSITION_SECONDS := DEAL_CARD_ANIMATION_SECONDS - DEAL_PERSPECTIVE_HOLD_SECONDS
 const DEAL_START_SCALE := 0.6
 const HAND_PERSPECTIVE_ROTATION_X := 2.0
 const DRAG_PERSPECTIVE_ROTATION_X := 1.0
@@ -563,13 +566,13 @@ func _relayout_deal() -> void:
 		tween.tween_property(view, "position", target, DEAL_CARD_ANIMATION_SECONDS).set_trans(Tween.TRANS_LINEAR)
 		# 飞行阶段牌背保持正向，并从起点到落点持续线性放大，避免前半程尺寸变化不明显。
 		tween.parallel().tween_property(view, "scale", Vector2.ONE, DEAL_CARD_ANIMATION_SECONDS).set_trans(Tween.TRANS_LINEAR)
-		# 牌从桌面牌堆飞向玩家时同步由桌面倾角恢复为近乎正面的手牌角度。
+		# 起飞初段仍覆盖牌堆，因此先锁住桌面倾角；切换层级后再平滑恢复为手牌角度。
 		tween.parallel().tween_property(
 			view,
 			"perspective_rotation_x",
 			HAND_PERSPECTIVE_ROTATION_X,
-			DEAL_CARD_ANIMATION_SECONDS
-		).set_trans(Tween.TRANS_LINEAR)
+			DEAL_PERSPECTIVE_TRANSITION_SECONDS
+		).set_delay(DEAL_PERSPECTIVE_HOLD_SECONDS).set_trans(Tween.TRANS_LINEAR)
 		# 飞离牌堆后切换为最终手牌层级；切换发生在空中，不会在落位时闪动。
 		tween.parallel().tween_callback(
 			_set_deal_card_final_z.bind(card_id, tween, target_z)
