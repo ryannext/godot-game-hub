@@ -53,8 +53,8 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 	count_badge.visible = show_count and _card_count > 0
 	count_badge.z_index = _card_count + 1
 	if is_instance_valid(_discard_placeholder):
-		# 占位牌与抽牌堆最上层对齐，牌数变化时仍保持并排关系。
-		_discard_placeholder.position = discard_pile_anchor.position + Vector2(0.0, top_offset_y)
+		# 弃牌不是层叠牌堆，始终固定在自身锚点 Y=0，不随抽牌堆张数上下移动。
+		_discard_placeholder.position = discard_pile_anchor.position
 
 func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	var perspective_material := ShaderMaterial.new()
