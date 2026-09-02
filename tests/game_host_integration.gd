@@ -156,7 +156,11 @@ func _is_snapshot_sorted(state: Dictionary, mode: int) -> bool:
 
 func _validate_hand_ui(module: Control) -> bool:
 	var hand_view := module.get_node("HandView") as TongitsHandView
+	var discard_button := module.get_node("ActionBar/DiscardButton") as Button
+	var play_meld_button := module.get_node("ActionBar/PlayMeldButton") as Button
 	var group_action := module.get_node("ActionBar/GroupActionButton") as Button
+	var layoff_button := module.get_node("ActionBar/LayoffButton") as Button
+	var draw_button := module.get_node("ActionBar/DrawButton") as Button
 	for button_name in ["DiscardButton", "PlayMeldButton", "LayoffButton", "DrawButton"]:
 		if not module.has_node("ActionBar/%s" % button_name):
 			_fail("操作区缺少按钮：%s" % button_name)
@@ -167,13 +171,32 @@ func _validate_hand_ui(module: Control) -> bool:
 	var auto_arrange := module.get_node("SortControlBar/AutoArrangeButton") as Button
 	var sort_rule := module.get_node("SortControlBar/SortRuleButton") as Button
 	var initial_state: Dictionary = module.hand_snapshot()
+	if not initial_state.cards.is_empty():
+		_fail("进入牌桌时没有保持空桌状态")
+		return false
 	if not auto_arrange.button_pressed or sort_rule.text != "点数优先":
 		_fail("自动排列或默认点数优先按钮状态错误")
 		return false
+	if not discard_button.disabled or not play_meld_button.disabled or not group_action.disabled or not layoff_button.disabled or not draw_button.disabled:
+		_fail("未选牌时操作按钮没有全部禁用")
+		return false
+	(module.get_node("RedealButton") as Button).pressed.emit()
+	await get_tree().create_timer(1.1).timeout
+	await get_tree().process_frame
+	initial_state = module.hand_snapshot()
+	if initial_state.cards.size() != 13:
+		_fail("点击测试发牌并等待后没有生成 13 张手牌")
+		return false
 	var initial_group_count: int = initial_state.groups.size()
 	var selected_ids: Array = initial_state.loose_card_ids.slice(0, 2)
-	for card_id in selected_ids:
-		hand_view._on_card_tapped(int(card_id))
+	hand_view._on_card_tapped(int(selected_ids[0]))
+	if discard_button.disabled or not group_action.disabled:
+		_fail("选中一张散牌时弃牌按钮或成组按钮状态错误")
+		return false
+	hand_view._on_card_tapped(int(selected_ids[1]))
+	if not discard_button.disabled:
+		_fail("选中多张散牌时弃牌按钮仍然启用")
+		return false
 	if group_action.disabled or group_action.text != "成组":
 		_fail("选中两张散牌后成组按钮没有启用")
 		return false
@@ -186,8 +209,8 @@ func _validate_hand_ui(module: Control) -> bool:
 
 	var grouped_card_id := int(grouped_state.groups[-1].card_ids[0])
 	hand_view._on_card_tapped(grouped_card_id)
-	if group_action.disabled or group_action.text != "解散组":
-		_fail("选中牌组后解散按钮没有启用")
+	if group_action.disabled or group_action.text != "解散组" or play_meld_button.disabled:
+		_fail("选中牌组后解散或打牌组按钮没有启用")
 		return false
 	group_action.pressed.emit()
 	await get_tree().process_frame

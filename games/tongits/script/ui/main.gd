@@ -4,7 +4,11 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var hand_view: TongitsHandView = %HandView
 @onready var auto_arrange_button: Button = %AutoArrangeButton
 @onready var sort_rule_button: Button = %SortRuleButton
+@onready var discard_button: Button = %DiscardButton
+@onready var play_meld_button: Button = %PlayMeldButton
 @onready var group_action_button: Button = %GroupActionButton
+@onready var layoff_button: Button = %LayoffButton
+@onready var draw_button: Button = %DrawButton
 @onready var deck_area: Control = %DeckArea
 @onready var deck_count_label: Label = %DeckCountLabel
 
@@ -114,6 +118,12 @@ func _on_group_action_pressed() -> void:
 		_server.create_group(_selected_loose_ids)
 
 func _update_action_buttons() -> void:
+	# 没有对应牌局上下文的操作必须保持禁用，不能只靠按钮外观暗示可操作。
+	discard_button.disabled = _selected_group_id >= 0 or _selected_loose_ids.size() != 1
+	play_meld_button.disabled = _selected_group_id < 0
+	layoff_button.disabled = true
+	draw_button.disabled = true
+
 	if _selected_group_id >= 0:
 		group_action_button.text = "解散组"
 		group_action_button.disabled = false

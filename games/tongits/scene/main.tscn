@@ -274,6 +274,8 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_action_brown")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_action_brown")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_brown")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
 text = "弃牌"
 
 [node name="PlayMeldButton" type="Button" parent="ActionBar"]
@@ -283,6 +285,8 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_action_orange")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_action_orange")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_orange")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
 text = "打牌组"
 
 [node name="GroupActionButton" type="Button" parent="ActionBar" unique_id=685989345]
@@ -303,6 +307,8 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_action_purple")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_action_purple")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_purple")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
 text = "补牌"
 
 [node name="DrawButton" type="Button" parent="ActionBar"]
@@ -312,6 +318,8 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxFlat_action_blue")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_action_blue_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_action_blue")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_action_gray")
+disabled = true
 text = "摸牌"
 
 [node name="SortControlBar" type="HBoxContainer" parent="." unique_id=2012075179]
