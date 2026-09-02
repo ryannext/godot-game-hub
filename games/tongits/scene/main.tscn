@@ -10,18 +10,8 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_table_zones"]
 shader = ExtResource("5_table_shader")
 shader_parameter/viewport_size = Vector2(1280, 720)
-shader_parameter/left_zone = Vector4(0.12, 0.12, 0.24, 0.31)
-shader_parameter/deck_zone = Vector4(0.43, 0.12, 0.13, 0.16)
-shader_parameter/right_zone = Vector4(0.64, 0.12, 0.24, 0.31)
-shader_parameter/player_zone = Vector4(0.11, 0.48, 0.78, 0.13)
 shader_parameter/far_scale = 0.7
 shader_parameter/near_scale = 1.18
-shader_parameter/corner_radius_px = 13.0
-shader_parameter/border_width_px = 2.0
-shader_parameter/border_color = Color(0.38, 0.72, 1, 0.58)
-shader_parameter/fill_color = Color(0.07, 0.31, 0.68, 0.16)
-shader_parameter/deck_border_color = Color(0.32, 0.55, 0.88, 0.36)
-shader_parameter/deck_fill_color = Color(0.035, 0.12, 0.29, 0.52)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_deck_count"]
 bg_color = Color(1, 0.78, 0.08, 1)
@@ -120,7 +110,7 @@ offset_bottom = 66.0
 grow_horizontal = 0
 text = "测试发牌"
 
-[node name="TablePerspectiveZones" type="ColorRect" parent="." unique_id=1103509011]
+[node name="TablePerspectiveZones" type="Control" parent="." unique_id=1103509011]
 material = SubResource("ShaderMaterial_table_zones")
 layout_mode = 1
 anchors_preset = 15
