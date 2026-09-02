@@ -21,13 +21,17 @@ func _draw() -> void:
 		var background := _background_for_type(group_type)
 		# 原版标识是 124×26 的横向底图；拉伸到牌组宽度后仍保留其圆角与渐变。
 		draw_texture_rect(background, rect, false, Color(1.0, 1.0, 1.0, opacity))
+		var font := ThemeDB.fallback_font
+		var font_size := 14
+		# draw_string 使用文字基线定位；根据字体高度和上伸距计算基线，使文字在不同标记高度下始终上下居中。
+		var text_baseline_y := rect.position.y + (rect.size.y - font.get_height(font_size)) * 0.5 + font.get_ascent(font_size)
 		draw_string(
-			ThemeDB.fallback_font,
-			Vector2(rect.position.x, rect.position.y + 19.0),
+			font,
+			Vector2(rect.position.x, text_baseline_y),
 			str(badge.label),
 			HORIZONTAL_ALIGNMENT_CENTER,
 			rect.size.x,
-			14,
+			font_size,
 			_text_color(group_type, opacity)
 		)
 
