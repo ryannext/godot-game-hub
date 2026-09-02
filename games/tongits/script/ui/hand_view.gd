@@ -39,9 +39,8 @@ const DEAL_CARD_ANIMATION_SECONDS := 0.22
 const DEAL_CARD_STAGGER_SECONDS := 0.075
 const DEAL_Z_SWITCH_SECONDS := 0.075
 const DEAL_START_SCALE := 0.6
-# 起始牌堆和剩余牌堆使用同一套三层表现：X 不偏移，Y 每层错开 3px。
-const DEAL_STACK_LAYER_OFFSET := 3.0
-const DEAL_STACK_MAX_VISIBLE_DEPTH := 2
+# 发牌底座由 DeckArea 持续显示；实际牌统一从顶层起飞，避免越发越薄并在最后只剩单张。
+const DEAL_INITIAL_STACK_HOLD_SECONDS := 0.12
 const DEAL_REVEAL_MIN_SCALE := 0.7
 const DEAL_REVEAL_SHRINK_SECONDS := 0.05
 const DEAL_FACE_GROW_SECONDS := 0.10
@@ -527,20 +526,22 @@ func _relayout_deal() -> void:
 		var target: Vector2 = layout.card_positions[card_id]
 		var target_z := int(layout.card_order.get(card_id, deal_order))
 		_stop_card_tween(card_id)
-		# 超过三层的牌共用最底层位置，既保留牌堆厚度，又避免 13 张牌沿 Y 轴拉得过长。
-		var stack_depth := mini(deal_order, DEAL_STACK_MAX_VISIBLE_DEPTH)
-		view.position = origin + Vector2(0.0, DEAL_STACK_LAYER_OFFSET * stack_depth)
+		# 三层厚度由 DeckArea 提供，所有实际发牌都从同一个顶层位置开始。
+		view.position = origin
 		view.scale = Vector2.ONE * DEAL_START_SCALE
+		view.modulate = Color.WHITE
 		view.show_back()
 		# 牌堆阶段按发牌顺序设置临时层级，保证当前要发的牌始终位于最上方。
 		view.z_index = layout.entries.size() - deal_order
 		var tween := view.create_tween()
 		tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		if deal_order > 0:
-			tween.tween_interval(DEAL_CARD_STAGGER_SECONDS * deal_order)
-		if deal_order == layout.entries.size() - 1:
-			# 回调位于最后一张牌的位移动画之前，所以剩余牌堆会在它起飞时出现。
-			tween.tween_callback(_emit_last_deal_card_started)
+		tween.tween_interval(DEAL_INITIAL_STACK_HOLD_SECONDS + DEAL_CARD_STAGGER_SECONDS * deal_order)
+		# 起飞时恢复正常牌色；最后一张会同时通知主场景生成剩余牌堆。
+		tween.tween_callback(_prepare_deal_card_flight.bind(
+			card_id,
+			tween,
+			deal_order == layout.entries.size() - 1
+		))
 		# 位移与缩放使用同一线性进度，避免位置提前贴近手牌、牌背却仍未完成放大的堆叠现象。
 		tween.tween_property(view, "position", target, DEAL_CARD_ANIMATION_SECONDS).set_trans(Tween.TRANS_LINEAR)
 		# 飞行阶段牌背保持正向，并从起点到落点持续线性放大，避免前半程尺寸变化不明显。
@@ -622,8 +623,15 @@ func _finish_deal_animation() -> void:
 	# 发牌全部翻面后也用同一段收拢/展开动画整理为默认散牌顺序。
 	_relayout_collapse_expand()
 
-func _emit_last_deal_card_started() -> void:
-	last_deal_card_started.emit()
+func _prepare_deal_card_flight(card_id: int, tween: Tween, announce_last_card: bool) -> void:
+	if _move_tweens.get(card_id) != tween:
+		return
+	var view: TongitsCardView = _card_views.get(card_id)
+	if view != null:
+		view.modulate = Color.WHITE
+	if announce_last_card:
+		# 回调位于最后一张牌的位移动画之前，所以剩余牌堆会在它起飞时出现。
+		last_deal_card_started.emit()
 
 func _set_deal_card_final_z(card_id: int, tween: Tween, target_z: int) -> void:
 	if _move_tweens.get(card_id) != tween:
@@ -647,6 +655,7 @@ func _cancel_deal_animation_runtime() -> void:
 	for view: TongitsCardView in _card_views.values():
 		view.scale = Vector2.ONE
 		view.rotation = 0.0
+		view.modulate = Color.WHITE
 		view.show_front()
 	_set_card_interaction_enabled(true)
 
