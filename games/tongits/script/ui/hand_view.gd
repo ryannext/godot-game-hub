@@ -42,10 +42,8 @@ const DEAL_START_SCALE := 0.6
 const HAND_PERSPECTIVE_ROTATION_X := 2.0
 const DRAG_PERSPECTIVE_ROTATION_X := 1.0
 const DECK_PERSPECTIVE_ROTATION_X := 10.0
-# 13 张实际发牌按 Y 轴逐层排成牌堆，每发走一张便将剩余牌整体收紧一层。
+# 实际发牌按 Y 轴逐层排成牌堆，每发走一张便将剩余牌重新以 Y=0 居中。
 const DEAL_STACK_LAYER_OFFSET := 1.0
-# 13 层以 DeckArea 中心对称展开：首层 -6px，中层 0px，底层 +6px。
-const DEAL_STACK_TOP_OFFSET_Y := -6.0
 const DEAL_INITIAL_STACK_HOLD_SECONDS := 0.12
 const DEAL_STACK_BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 const DEAL_REVEAL_MIN_SCALE := 0.7
@@ -528,6 +526,7 @@ func _relayout_deal() -> void:
 	var origin := _deal_origin_local()
 	var deal_order := 0
 	_deal_cards_remaining = layout.entries.size()
+	var deal_stack_top_offset_y := -DEAL_STACK_LAYER_OFFSET * float(maxi(0, _deal_cards_remaining - 1)) * 0.5
 	_deal_order_card_ids.clear()
 	_set_card_interaction_enabled(false)
 	for entry: Dictionary in layout.entries:
@@ -542,7 +541,7 @@ func _relayout_deal() -> void:
 		# 每张牌占据一个真实层级，因此 13 张牌会形成 13 层而不是三层示意。
 		view.position = origin + Vector2(
 			0.0,
-			DEAL_STACK_TOP_OFFSET_Y + DEAL_STACK_LAYER_OFFSET * deal_order
+			deal_stack_top_offset_y + DEAL_STACK_LAYER_OFFSET * deal_order
 		)
 		view.scale = Vector2.ONE * DEAL_START_SCALE
 		view.perspective_rotation_x = DECK_PERSPECTIVE_ROTATION_X
@@ -655,14 +654,22 @@ func _prepare_deal_card_flight(card_id: int, tween: Tween, deal_order: int, anno
 	var view: TongitsCardView = _card_views.get(card_id)
 	if view != null:
 		view.modulate = Color.WHITE
-	# 底边保持不动：顶牌飞走后不移动其余牌，因此牌堆会从上向下逐层减少。
+	var remaining_count := _deal_order_card_ids.size() - deal_order - 1
+	var remaining_top_offset_y := -DEAL_STACK_LAYER_OFFSET * float(maxi(0, remaining_count - 1)) * 0.5
+	var origin := _deal_origin_local()
+	# 当前牌起飞时，所有剩余牌立即围绕 Y=0 重新居中，并同步刷新层次明暗。
 	for later_order in range(deal_order + 1, _deal_order_card_ids.size()):
 		var later_view: TongitsCardView = _card_views.get(_deal_order_card_ids[later_order])
 		if later_view == null:
 			continue
+		var remaining_index := later_order - deal_order - 1
+		later_view.position = origin + Vector2(
+			0.0,
+			remaining_top_offset_y + DEAL_STACK_LAYER_OFFSET * remaining_index
+		)
 		later_view.modulate = _deal_stack_tint(
-			later_order - deal_order - 1,
-			_deal_order_card_ids.size() - deal_order - 1
+			remaining_index,
+			remaining_count
 		)
 	if announce_last_card:
 		# 回调位于最后一张牌的位移动画之前，所以剩余牌堆会在它起飞时出现。

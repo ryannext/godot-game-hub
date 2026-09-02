@@ -6,8 +6,6 @@ const TABLE_SPLIT_CARD_SHADER := preload("res://games/tongits/assets/shaders/tab
 const CARD_SIZE := Vector2(67.2, 90.0)
 const COUNT_BADGE_OFFSET := Vector2(15.6, 28.0)
 const LAYER_OFFSET_Y := 1.0
-# 13 张起始牌堆以中心对称展开，固定底边为 +6px；后续牌堆共用这条底边。
-const STACK_BOTTOM_OFFSET_Y := 6.0
 const BOTTOM_TINT := Color(0.62, 0.62, 0.68, 1.0)
 const LEFT_HALF_PIVOT_X := 1.0
 const RIGHT_HALF_PIVOT_X := 0.0
@@ -30,10 +28,10 @@ func _ready() -> void:
 func set_card_count(card_count: int, show_count: bool) -> void:
 	_card_count = maxi(0, card_count)
 	_clear_card_layers()
-	# 不同张数的牌堆都锚定在同一底边；15 张会比初始 13 张向上多延伸两层。
+	# 每次牌数变化都以锚点 Y=0 重新居中：奇数张包含 0，偶数张跨在 ±0.5px 两侧。
 	var top_offset_y := 0.0
 	if _card_count > 0:
-		top_offset_y = STACK_BOTTOM_OFFSET_Y - LAYER_OFFSET_Y * (_card_count - 1)
+		top_offset_y = -LAYER_OFFSET_Y * float(_card_count - 1) * 0.5
 	# 先创建最底层、最后创建顶层，利用兄弟绘制顺序让顶牌盖住下层牌。
 	for depth in range(_card_count - 1, -1, -1):
 		var card_back := TextureRect.new()
