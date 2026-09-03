@@ -31,6 +31,7 @@ func _ready() -> void:
 	%RedealButton.pressed.connect(_deal_hand)
 	auto_arrange_button.toggled.connect(_on_auto_arrange_toggled)
 	sort_rule_button.pressed.connect(_server.toggle_sort_mode)
+	discard_button.pressed.connect(_on_discard_pressed)
 	play_meld_button.pressed.connect(_on_play_meld_pressed)
 	group_action_button.pressed.connect(_on_group_action_pressed)
 	hand_view.selection_changed.connect(_on_selection_changed)
@@ -87,6 +88,7 @@ func _deal_hand() -> void:
 func _initialize_empty_table() -> void:
 	# 空桌阶段不保留上一局手牌、发牌层、弃牌占位或牌数徽章。
 	deck_area.call("set_card_count", 0, false)
+	deck_area.call("clear_discard")
 	deck_area.visible = false
 	_deck_remaining_count = 0
 	opponent_left_meld_area.clear_melds()
@@ -171,6 +173,14 @@ func _on_play_meld_pressed() -> void:
 	if played_meld.is_empty():
 		return
 	player_meld_area.append_meld(played_meld.get("cards", []), true)
+
+func _on_discard_pressed() -> void:
+	if _selected_group_id >= 0 or _selected_loose_ids.size() != 1:
+		return
+	var discarded_card := _server.discard_card(_selected_loose_ids[0])
+	if discarded_card.is_empty():
+		return
+	deck_area.call("show_discard", discarded_card)
 
 func _update_action_buttons() -> void:
 	# 没有对应牌局上下文的操作必须保持禁用，不能只靠按钮外观暗示可操作。

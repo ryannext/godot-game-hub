@@ -17,12 +17,12 @@ const TABLE_NEAR_SCALE := 1.06
 @onready var discard_pile_anchor: Control = $DiscardPileAnchor
 
 var _card_count := 0
-var _discard_placeholder: TextureRect
+var _discard_card: TextureRect
 
 func _ready() -> void:
-	_ensure_discard_placeholder()
 	# 运行时按真实剩余数量生成牌背；场景文件不再保存固定的三层示意节点。
 	set_card_count(0, false)
+	clear_discard()
 
 func set_card_count(card_count: int, show_count: bool) -> void:
 	_card_count = maxi(0, card_count)
@@ -50,9 +50,6 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 	count_label.text = str(_card_count)
 	count_badge.visible = show_count and _card_count > 0
 	count_badge.z_index = _card_count + 1
-	if is_instance_valid(_discard_placeholder):
-		# 弃牌不是层叠牌堆，始终固定在自身锚点 Y=0，不随抽牌堆张数上下移动。
-		_discard_placeholder.position = discard_pile_anchor.position
 
 func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	var perspective_material := ShaderMaterial.new()
@@ -63,21 +60,34 @@ func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	perspective_material.set_shader_parameter(&"near_scale", TABLE_NEAR_SCALE)
 	return perspective_material
 
-func _ensure_discard_placeholder() -> void:
-	if is_instance_valid(_discard_placeholder):
+func show_discard(card_data: Dictionary) -> void:
+	clear_discard()
+	var card := TongitsCard.new(
+		int(card_data.get("suit", TongitsCard.Suit.CLUBS)),
+		int(card_data.get("rank", 1)),
+		int(card_data.get("card_id", -1))
+	)
+	_discard_card = TextureRect.new()
+	_discard_card.name = "DiscardCard"
+	_discard_card.position = discard_pile_anchor.position
+	_discard_card.size = CARD_SIZE
+	_discard_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_discard_card.texture = TongitsCardArtLibrary.texture_for(card)
+	_discard_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_discard_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_discard_card.material = _create_table_half_material(RIGHT_HALF_PIVOT_X)
+	_discard_card.z_index = 1
+	add_child(_discard_card)
+
+func clear_discard() -> void:
+	if not is_instance_valid(_discard_card):
+		_discard_card = null
 		return
-	# 当前业务流程尚未接入桌面弃牌数据，先保留一张牌背作为可替换的视觉入口。
-	_discard_placeholder = TextureRect.new()
-	_discard_placeholder.name = "DiscardPlaceholder"
-	_discard_placeholder.position = discard_pile_anchor.position
-	_discard_placeholder.size = CARD_SIZE
-	_discard_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_discard_placeholder.texture = CARD_BACK_TEXTURE
-	_discard_placeholder.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_discard_placeholder.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_discard_placeholder.material = _create_table_half_material(RIGHT_HALF_PIVOT_X)
-	_discard_placeholder.z_index = 1
-	add_child(_discard_placeholder)
+	if _discard_card.get_parent() == self:
+		remove_child(_discard_card)
+	_discard_card.queue_free()
+	_discard_card = null
+
 func card_count() -> int:
 	return _card_count
 

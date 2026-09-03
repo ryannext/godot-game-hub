@@ -143,6 +143,18 @@ func play_group(group_id: int) -> Dictionary:
 	_commit()
 	return {"group_id": group_id, "cards": played_cards}
 
+func discard_card(card_id: int) -> Dictionary:
+	var loose_index := _loose_card_ids.find(card_id)
+	if loose_index < 0 or not _cards.has(card_id):
+		_reject("只能弃掉选中的散牌")
+		return {}
+	var card: TongitsCard = _cards[card_id]
+	var discarded_card := {"card_id": card.card_id, "suit": card.suit, "rank": card.rank}
+	_loose_card_ids.remove_at(loose_index)
+	_cards.erase(card_id)
+	_commit()
+	return discarded_card
+
 func move_card(card_id: int, target_area: StringName, target_group_id: int, target_index: int) -> void:
 	if not _cards.has(card_id):
 		_reject("手牌中不存在这张牌")

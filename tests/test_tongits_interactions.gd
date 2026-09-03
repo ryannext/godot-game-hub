@@ -77,6 +77,23 @@ func test_play_group_removes_cards_from_hand() -> void:
 	assert_true(state.cards.is_empty(), "打出的牌不应继续留在手牌数据中")
 	assert_true(state.groups.is_empty(), "打出的牌组不应继续留在手牌牌组中")
 
+func test_discard_removes_only_a_loose_card() -> void:
+	var simulator := TongitsHandServerSimulator.new()
+	_configure_cards(simulator, [
+		TongitsCard.new(TongitsCard.Suit.DIAMONDS, 7, 0),
+		TongitsCard.new(TongitsCard.Suit.CLUBS, 7, 1),
+		TongitsCard.new(TongitsCard.Suit.SPADES, 7, 2),
+		TongitsCard.new(TongitsCard.Suit.HEARTS, 9, 3),
+	])
+	simulator.create_group([0, 1, 2])
+	var rejected_group_card := simulator.discard_card(0)
+	assert_true(rejected_group_card.is_empty(), "牌组中的牌不能通过单张弃牌操作打出")
+	var discarded := simulator.discard_card(3)
+	var state := simulator.snapshot()
+	assert_eq(int(discarded.card_id), 3, "弃牌命令应返回被打出的牌面数据")
+	assert_false(state.cards.any(func(card: Dictionary) -> bool: return int(card.card_id) == 3), "弃牌后手牌数据不应继续包含该牌")
+	assert_false(state.loose_card_ids.has(3), "弃牌后散牌顺序不应继续包含该牌")
+
 func test_meld_unfold_only_runs_when_explicitly_requested() -> void:
 	var view := track(TongitsMeldAreaView.new()) as TongitsMeldAreaView
 	view.size = Vector2(500, 100)

@@ -187,6 +187,9 @@ func _validate_hand_ui(module: Control) -> bool:
 	if initial_state.cards.size() != 13:
 		_fail("点击测试发牌并等待后没有生成 13 张手牌")
 		return false
+	if module.get_node("DeckArea").has_node("DiscardPlaceholder") or module.get_node("DeckArea").has_node("DiscardCard"):
+		_fail("尚未弃牌时弃牌堆不应保留占位牌或真实牌")
+		return false
 	if (
 		module.get_node("OpponentLeftMeldArea").get_child_count() != 17
 		or module.get_node("OpponentRightMeldArea").get_child_count() != 17
@@ -230,8 +233,23 @@ func _validate_hand_ui(module: Control) -> bool:
 		_fail("打出的牌组没有添加到玩家 MeldArea")
 		return false
 
+	var discard_card_id := int(played_state.loose_card_ids[0])
+	hand_view._on_card_tapped(discard_card_id)
+	if discard_button.disabled:
+		_fail("选中一张散牌后弃牌按钮没有启用")
+		return false
+	discard_button.pressed.emit()
+	await get_tree().process_frame
+	var discarded_state: Dictionary = module.hand_snapshot()
+	if discarded_state.cards.size() != 10 or discarded_state.loose_card_ids.has(discard_card_id):
+		_fail("弃牌没有从手牌权威数据中移除所选牌")
+		return false
+	if not module.get_node("DeckArea").has_node("DiscardCard") or module.get_node("DeckArea").has_node("DiscardPlaceholder"):
+		_fail("弃牌堆没有用真实牌面替换原占位牌")
+		return false
+
 	# 直接驱动手势控制器验证：长按只拖单张，且不改变用户选择的排序规则。
-	var drag_state: Dictionary = module.hand_snapshot()
+	var drag_state: Dictionary = discarded_state
 	var drag_card_id := int(drag_state.loose_card_ids[0])
 	hand_view._on_card_tapped(drag_card_id)
 	var start := hand_view.get_global_transform_with_canvas() * Vector2(180, 100)
@@ -241,7 +259,7 @@ func _validate_hand_ui(module: Control) -> bool:
 	hand_view._on_card_drag_ended(drag_card_id, finish)
 	await get_tree().process_frame
 	var moved_state: Dictionary = module.hand_snapshot()
-	if moved_state.cards.size() != 11 or int(moved_state.sort_mode) != TongitsHandServerSimulator.SortMode.RANK_SUIT:
+	if moved_state.cards.size() != 10 or int(moved_state.sort_mode) != TongitsHandServerSimulator.SortMode.RANK_SUIT:
 		_fail("单张长按拖拽改变了当前点数优先规则")
 		return false
 	print("[GameHostTest] mobile hand UI interactions validated")
