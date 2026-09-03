@@ -77,6 +77,25 @@ func test_play_group_removes_cards_from_hand() -> void:
 	assert_true(state.cards.is_empty(), "打出的牌不应继续留在手牌数据中")
 	assert_true(state.groups.is_empty(), "打出的牌组不应继续留在手牌牌组中")
 
+func test_meld_unfold_only_runs_when_explicitly_requested() -> void:
+	var view := track(TongitsMeldAreaView.new()) as TongitsMeldAreaView
+	view.size = Vector2(500, 100)
+	var cards := [
+		{"card_id": 30, "suit": TongitsCard.Suit.DIAMONDS, "rank": 7},
+		{"card_id": 31, "suit": TongitsCard.Suit.CLUBS, "rank": 7},
+		{"card_id": 32, "suit": TongitsCard.Suit.SPADES, "rank": 7},
+	]
+	view.apply_snapshot({"groups": [{"group_id": 1, "card_ids": [30, 31, 32]}], "cards": cards})
+	assert_true(view._unfold_tween == null, "普通快照渲染不应播放展开动画")
+
+	view.clear_melds()
+	view.append_meld(cards)
+	assert_true(view._unfold_tween == null, "普通追加牌组默认不应播放展开动画")
+
+	view.clear_melds()
+	view.append_meld(cards, true)
+	assert_true(view._unfold_tween != null, "打出牌组时显式请求展开动画")
+
 func test_same_single_card_group_drop_keeps_group() -> void:
 	var simulator := TongitsHandServerSimulator.new()
 	simulator.start_deal(12345)

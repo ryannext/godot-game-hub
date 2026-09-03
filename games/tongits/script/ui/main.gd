@@ -102,19 +102,19 @@ func _show_test_melds() -> void:
 		[[TongitsCard.Suit.HEARTS, 8], [TongitsCard.Suit.HEARTS, 9], [TongitsCard.Suit.HEARTS, 10]],
 		[[TongitsCard.Suit.DIAMONDS, 1], [TongitsCard.Suit.CLUBS, 1], [TongitsCard.Suit.HEARTS, 1], [TongitsCard.Suit.SPADES, 1]],
 		[[TongitsCard.Suit.DIAMONDS, 12], [TongitsCard.Suit.CLUBS, 12], [TongitsCard.Suit.SPADES, 12]],
-	], 100), true)
+	], 100))
 	opponent_right_meld_area.apply_snapshot(_build_test_meld_snapshot([
 		[[TongitsCard.Suit.DIAMONDS, 11], [TongitsCard.Suit.CLUBS, 11], [TongitsCard.Suit.SPADES, 11]],
 		[[TongitsCard.Suit.DIAMONDS, 9], [TongitsCard.Suit.HEARTS, 9], [TongitsCard.Suit.SPADES, 9]],
 		[[TongitsCard.Suit.CLUBS, 1], [TongitsCard.Suit.CLUBS, 2], [TongitsCard.Suit.CLUBS, 3], [TongitsCard.Suit.CLUBS, 4]],
 		[[TongitsCard.Suit.DIAMONDS, 8], [TongitsCard.Suit.CLUBS, 8], [TongitsCard.Suit.HEARTS, 8], [TongitsCard.Suit.SPADES, 8]],
 		[[TongitsCard.Suit.DIAMONDS, 6], [TongitsCard.Suit.DIAMONDS, 7], [TongitsCard.Suit.DIAMONDS, 8]],
-	], 200), true)
+	], 200))
 	player_meld_area.apply_snapshot(_build_test_meld_snapshot([
 		[[TongitsCard.Suit.DIAMONDS, 6], [TongitsCard.Suit.CLUBS, 6], [TongitsCard.Suit.SPADES, 6]],
 		[[TongitsCard.Suit.DIAMONDS, 13], [TongitsCard.Suit.HEARTS, 13], [TongitsCard.Suit.SPADES, 13]],
 		[[TongitsCard.Suit.DIAMONDS, 4], [TongitsCard.Suit.CLUBS, 4], [TongitsCard.Suit.SPADES, 4]],
-	], 300), true)
+	], 300))
 
 func _build_test_meld_snapshot(meld_specs: Array, first_card_id: int) -> Dictionary:
 	var cards: Array[Dictionary] = []

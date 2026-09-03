@@ -38,10 +38,10 @@ func _ready() -> void:
 	_relayout()
 
 # 接受与手牌服务器相同的快照结构：cards + groups。
-func apply_snapshot(snapshot: Dictionary, animate := false) -> void:
-	set_melds(snapshot.get("groups", []), snapshot.get("cards", []), animate)
+func apply_snapshot(snapshot: Dictionary) -> void:
+	set_melds(snapshot.get("groups", []), snapshot.get("cards", []))
 
-func set_melds(melds: Array, card_data_list: Array, animate := false) -> void:
+func set_melds(melds: Array, card_data_list: Array) -> void:
 	clear_melds()
 	var cards_by_id := {}
 	for card_data: Dictionary in card_data_list:
@@ -57,10 +57,8 @@ func set_melds(melds: Array, card_data_list: Array, animate := false) -> void:
 		var card_ids: Array = meld.get("card_ids", [])
 		_append_meld_views(meld_index, card_ids, cards_by_id)
 	_relayout()
-	if animate:
-		_animate_melds(Array(range(melds.size())))
 
-func append_meld(card_data_list: Array, animate := true) -> void:
+func append_meld(card_data_list: Array, animate := false) -> void:
 	if card_data_list.is_empty():
 		return
 	var meld_index := 0
