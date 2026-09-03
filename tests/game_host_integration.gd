@@ -255,15 +255,19 @@ func _validate_hand_ui(module: Control) -> bool:
 	var second_discard_id := int(discarded_state.loose_card_ids[0])
 	hand_view._on_card_tapped(second_discard_id)
 	discard_button.pressed.emit()
-	await get_tree().process_frame
+	await get_tree().create_timer(0.3).timeout
 	discarded_state = module.hand_snapshot()
 	if discarded_state.cards.size() != 9 or discarded_state.discard_pile.size() != 2:
 		_fail("第二次弃牌没有保留最近两张弃牌数据")
 		return false
 	var discard_old := module.get_node("DeckArea/DiscardCardOld") as TextureRect
 	var discard_top := module.get_node("DeckArea/DiscardCardTop") as TextureRect
-	if discard_old == null or discard_top == null or discard_old.rotation >= 0.0 or discard_top.rotation <= 0.0:
-		_fail("两张弃牌没有按相反方向轻微旋转错位")
+	var discard_anchor_x: float = (module.get_node("DeckArea/DiscardPileAnchor") as Control).position.x
+	if discard_old == null or discard_top == null or not is_zero_approx(discard_old.rotation) or not is_zero_approx(discard_top.rotation):
+		_fail("左右弃牌槽中的牌不应旋转")
+		return false
+	if not is_equal_approx(discard_old.position.x, discard_anchor_x - 10.0) or not is_equal_approx(discard_top.position.x, discard_anchor_x + 10.0):
+		_fail("最近两张弃牌没有落在固定的左右槽位")
 		return false
 	if int(discard_old.get_meta(&"card_id", -1)) != discard_card_id or int(discard_top.get_meta(&"card_id", -1)) != second_discard_id:
 		_fail("弃牌堆最近两张牌的先后层级错误")
@@ -279,8 +283,17 @@ func _validate_hand_ui(module: Control) -> bool:
 	if discarded_state.cards.size() != 8 or discarded_state.discard_pile.size() != 3:
 		_fail("弃牌历史没有保存第三张弃牌")
 		return false
+	if discard_old.position.x <= discard_anchor_x - 10.0:
+		_fail("原右槽牌没有从右向左播放过渡动画")
+		return false
+	await get_tree().create_timer(0.3).timeout
+	discard_old = module.get_node("DeckArea/DiscardCardOld") as TextureRect
+	discard_top = module.get_node("DeckArea/DiscardCardTop") as TextureRect
 	if int(discard_old.get_meta(&"card_id", -1)) != second_discard_id or int(discard_top.get_meta(&"card_id", -1)) != third_discard_id:
 		_fail("弃牌超过两张后画面没有只保留最近两张")
+		return false
+	if not is_equal_approx(discard_old.position.x, discard_anchor_x - 10.0) or not is_equal_approx(discard_top.position.x, discard_anchor_x + 10.0):
+		_fail("弃牌切换动画结束后没有回到固定左右槽位")
 		return false
 
 	# 直接驱动手势控制器验证：长按只拖单张，且不改变用户选择的排序规则。
