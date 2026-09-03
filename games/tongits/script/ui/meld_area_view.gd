@@ -21,6 +21,7 @@ const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
 @export_range(0.0, 48.0, 0.5) var vertical_padding := 12.0
 
 @export_category("桌面透视")
+@export var follow_table_perspective_bounds := true
 @export_range(-45.0, 45.0, 0.5) var perspective_rotation_x := 10.0
 @export_range(1.0, 179.0, 1.0) var perspective_fov := 75.0
 
@@ -89,7 +90,12 @@ func calculate_layout(meld_sizes: Array[int]) -> Array:
 	return positions
 
 func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
-	var usable_width := maxf(0.0, size.x - horizontal_padding * 2.0)
+	# 背景框由全桌 Shader 以屏幕中心做梯形透视，牌组节点本身仍使用普通坐标。
+	# 取透视后背景框在上下边界的交集，保证每一行卡牌都落在可见框线以内。
+	var safe_horizontal_bounds := _table_safe_horizontal_bounds()
+	var content_left := safe_horizontal_bounds.x + horizontal_padding
+	var content_right := safe_horizontal_bounds.y - horizontal_padding
+	var usable_width := maxf(0.0, content_right - content_left)
 	var visual_card_size := _projected_card_extent()
 	var visual_overhang := (visual_card_size - card_size) * 0.5
 	var rows: Array[Array] = []
@@ -128,9 +134,9 @@ func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
 		first_y = maxf(vertical_padding, (size.y - block_height) * 0.5)
 
 	for row_index in rows.size():
-		var cursor_x := horizontal_padding
+		var cursor_x := content_left
 		if flow_direction == FlowDirection.RIGHT_TO_LEFT:
-			cursor_x = size.x - horizontal_padding
+			cursor_x = content_right
 		for entry: Dictionary in rows[row_index]:
 			var meld_index := int(entry.meld_index)
 			var count := int(entry.card_count)
@@ -153,6 +159,37 @@ func _fit_card_step(card_count: int, available_width: float) -> float:
 func _projected_card_extent() -> Vector2:
 	# Meld 卡牌通过缩放完整原生 Shader 画布得到目标尺寸，外部布局直接使用目标显示尺寸。
 	return card_size
+
+func _table_safe_horizontal_bounds() -> Vector2:
+	var fallback := Vector2(0.0, size.x)
+	if not follow_table_perspective_bounds or not is_inside_tree():
+		return fallback
+	var perspective_zones := get_node_or_null("../TablePerspectiveZones") as CanvasItem
+	if perspective_zones == null:
+		return fallback
+	var shader_material := perspective_zones.material as ShaderMaterial
+	if shader_material == null:
+		return fallback
+	var viewport_size := get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return fallback
+	var global_rect := get_global_rect()
+	var far_scale := float(shader_material.get_shader_parameter("far_scale"))
+	var near_scale := float(shader_material.get_shader_parameter("near_scale"))
+	var left_top := _project_table_x(global_rect.position.x, global_rect.position.y, viewport_size, far_scale, near_scale)
+	var left_bottom := _project_table_x(global_rect.position.x, global_rect.end.y, viewport_size, far_scale, near_scale)
+	var right_top := _project_table_x(global_rect.end.x, global_rect.position.y, viewport_size, far_scale, near_scale)
+	var right_bottom := _project_table_x(global_rect.end.x, global_rect.end.y, viewport_size, far_scale, near_scale)
+	var safe_left := maxf(left_top, left_bottom) - global_rect.position.x
+	var safe_right := minf(right_top, right_bottom) - global_rect.position.x
+	if safe_right <= safe_left:
+		return fallback
+	return Vector2(safe_left, safe_right)
+
+func _project_table_x(x: float, y: float, viewport_size: Vector2, far_scale: float, near_scale: float) -> float:
+	var normalized_y := clampf(y / viewport_size.y, 0.0, 1.0)
+	var depth_scale := lerpf(far_scale, near_scale, normalized_y)
+	return viewport_size.x * 0.5 + (x - viewport_size.x * 0.5) * depth_scale
 
 func _relayout() -> void:
 	if _view_slots.is_empty():

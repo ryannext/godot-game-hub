@@ -151,6 +151,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("7_meld_area")
+horizontal_padding = 10.0
 
 [node name="OpponentRightMeldArea" type="Control" parent="." unique_id=1024056887]
 unique_name_in_owner = true
@@ -164,6 +165,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("7_meld_area")
 flow_direction = 1
+horizontal_padding = 10.0
 
 [node name="PlayerMeldArea" type="Control" parent="." unique_id=1860040659]
 unique_name_in_owner = true
