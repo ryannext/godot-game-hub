@@ -15,6 +15,40 @@ func test_mouse_release_without_press_does_not_tap() -> void:
 	view._gui_input(release)
 	assert_false(tapped, "孤立的鼠标 release 不应触发卡牌点击")
 
+func test_meld_areas_follow_each_players_inward_flow() -> void:
+	var view := track(TongitsMeldAreaView.new()) as TongitsMeldAreaView
+	view.size = Vector2(300, 220)
+	view.card_size = Vector2(50, 70)
+	view.card_step = 30.0
+	view.horizontal_padding = 10.0
+	view.vertical_padding = 10.0
+	view.one_meld_per_row = true
+	var left_layout := view.calculate_layout([3, 2, 4])
+	assert_true(left_layout[0][0].x < left_layout[0][1].x, "左侧对手牌组应从左向右展开")
+	assert_true(left_layout[0][0].y < left_layout[1][0].y and left_layout[1][0].y < left_layout[2][0].y, "对手的每个牌组应各占一行")
+
+	view.flow_direction = TongitsMeldAreaView.FlowDirection.RIGHT_TO_LEFT
+	var right_layout := view.calculate_layout([3, 2, 4])
+	assert_true(right_layout[0][0].x > right_layout[0][1].x, "右侧对手牌组应从右向左展开")
+
+	view.flow_direction = TongitsMeldAreaView.FlowDirection.LEFT_TO_RIGHT
+	view.one_meld_per_row = false
+	var player_layout := view.calculate_layout([3, 3])
+	assert_eq(player_layout[0][0].y, player_layout[1][0].y, "玩家的多个牌组应处于同一行")
+	assert_true(player_layout[1][0].x > player_layout[0][-1].x, "玩家牌组应按组从左向右排列")
+
+	view.set_melds(
+		[{"group_id": 1, "card_ids": [10, 11, 12]}, {"group_id": 2, "card_ids": [13, 14]}],
+		[
+			{"card_id": 10, "suit": TongitsCard.Suit.CLUBS, "rank": 3},
+			{"card_id": 11, "suit": TongitsCard.Suit.DIAMONDS, "rank": 3},
+			{"card_id": 12, "suit": TongitsCard.Suit.HEARTS, "rank": 3},
+			{"card_id": 13, "suit": TongitsCard.Suit.SPADES, "rank": 7},
+			{"card_id": 14, "suit": TongitsCard.Suit.SPADES, "rank": 8},
+		]
+	)
+	assert_eq(view.get_child_count(), 5, "MeldArea 应按快照为每张牌创建桌面卡牌视图")
+
 func test_same_single_card_group_drop_keeps_group() -> void:
 	var simulator := TongitsHandServerSimulator.new()
 	simulator.start_deal(12345)

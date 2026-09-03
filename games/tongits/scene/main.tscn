@@ -5,7 +5,8 @@
 [ext_resource type="Texture2D" uid="uid://p2r1dtm0pl8c" path="res://games/tongits/assets/backgrounds/tongits_cocos_game_bg.jpg" id="3_table_bg"]
 [ext_resource type="Script" uid="uid://cgjcq5h0oib75" path="res://games/tongits/script/ui/deck_pile_view.gd" id="4_deck_pile"]
 [ext_resource type="Shader" uid="uid://cax5064a6gebj" path="res://games/tongits/assets/shaders/table_perspective_zones.gdshader" id="5_table_shader"]
-[ext_resource type="Script" uid="uid://bicmqvnxa43oh" path="res://games/tongits/script/ui/table_perspective_zones.gd" id="6_table_zones"]
+[ext_resource type="Script" uid="uid://cat5k3hl65j78" path="res://games/tongits/script/ui/table_perspective_zones.gd" id="6_table_zones"]
+[ext_resource type="Script" path="res://games/tongits/script/ui/meld_area_view.gd" id="7_meld_area"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_table_zones"]
 shader = ExtResource("5_table_shader")
@@ -149,6 +150,7 @@ anchor_bottom = 0.43
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("7_meld_area")
 
 [node name="OpponentRightMeldArea" type="Control" parent="." unique_id=1024056887]
 unique_name_in_owner = true
@@ -160,6 +162,8 @@ anchor_bottom = 0.43
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("7_meld_area")
+flow_direction = 1
 
 [node name="PlayerMeldArea" type="Control" parent="." unique_id=1860040659]
 unique_name_in_owner = true
@@ -174,6 +178,12 @@ offset_bottom = 7.9999695
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("7_meld_area")
+one_meld_per_row = false
+card_size = Vector2(56, 75)
+card_step = 32.0
+horizontal_padding = 16.0
+vertical_padding = 8.0
 
 [node name="DeckArea" type="Control" parent="." unique_id=334828628]
 unique_name_in_owner = true

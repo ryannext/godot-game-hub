@@ -65,6 +65,13 @@ func set_perspective(rotation_x_degrees: float, camera_fov: float = DEFAULT_PERS
 	_set_shader_parameter(&"fov", camera_fov)
 	perspective_rotation_x = rotation_x_degrees
 
+func set_display_size(display_size: Vector2) -> void:
+	# 桌面牌组复用同一张卡牌视图，但尺寸小于底部手牌。
+	custom_minimum_size = display_size
+	size = display_size
+	pivot_offset = display_size * 0.5
+	_set_shader_parameter(&"item_size_px", display_size)
+
 func _set_shader_parameter(parameter: StringName, value: Variant) -> void:
 	var shader_material := material as ShaderMaterial
 	if shader_material != null:
