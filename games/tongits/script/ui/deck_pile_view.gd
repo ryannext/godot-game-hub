@@ -10,8 +10,6 @@ const LEFT_HALF_PIVOT_X := 1.0
 const RIGHT_HALF_PIVOT_X := 0.0
 const TABLE_FAR_SCALE := 0.94
 const TABLE_NEAR_SCALE := 1.06
-const DISCARD_LAYER_OFFSET_Y := 1.4
-const DISCARD_TRANSITION_SECONDS := 0.22
 
 @onready var count_badge: Control = $DeckCountBadge
 @onready var count_label: Label = $DeckCountBadge/DeckCountLabel
@@ -21,7 +19,6 @@ const DISCARD_TRANSITION_SECONDS := 0.22
 var _card_count := 0
 var _discard_cards: Array[TextureRect] = []
 var _discard_card_ids: Array[int] = []
-var _discard_transition_tween: Tween
 
 func _ready() -> void:
 	# 运行时按真实剩余数量生成牌背；场景文件不再保存固定的三层示意节点。
@@ -65,7 +62,7 @@ func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	return perspective_material
 
 func set_discard_cards(card_data_list: Array) -> void:
-	var first_visible_index := maxi(0, card_data_list.size() - 2)
+	var first_visible_index := maxi(0, card_data_list.size() - 1)
 	var visible_cards := card_data_list.slice(first_visible_index)
 	var visible_ids: Array[int] = []
 	for card_data: Dictionary in visible_cards:
@@ -73,46 +70,19 @@ func set_discard_cards(card_data_list: Array) -> void:
 	if visible_ids == _discard_card_ids:
 		return
 
-	_stop_discard_transition()
-	var existing_by_id := {}
 	for discard_card in _discard_cards:
-		existing_by_id[int(discard_card.get_meta(&"card_id", -1))] = discard_card
-		discard_card.name = "DiscardCardTransition"
-
-	var next_cards: Array[TextureRect] = []
-	for visible_index in visible_cards.size():
-		var card_data: Dictionary = visible_cards[visible_index]
-		var card_id := int(card_data.get("card_id", -1))
-		var discard_card: TextureRect = existing_by_id.get(card_id)
-		var is_new_card := discard_card == null
-		if is_new_card:
-			discard_card = _create_discard_card(card_data)
-		discard_card.name = "DiscardCardTop" if visible_index == visible_cards.size() - 1 else "DiscardCardOld"
-		discard_card.z_index = visible_index + 1
+		_free_discard_card(discard_card)
+	_discard_cards.clear()
+	if not visible_cards.is_empty():
+		var discard_card := _create_discard_card(visible_cards[0])
+		discard_card.name = "DiscardCardTop"
+		discard_card.z_index = 1
 		discard_card.rotation = 0.0
-		var target_position := _discard_slot_position(visible_index, visible_cards.size())
-		if _discard_card_ids.is_empty():
-			discard_card.position = target_position
-		elif not is_new_card:
-			_ensure_discard_transition_tween()
-			_discard_transition_tween.tween_property(discard_card, "position", target_position, DISCARD_TRANSITION_SECONDS).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		else:
-			discard_card.position = target_position
 		discard_card.modulate = Color.WHITE
-		next_cards.append(discard_card)
-
-	for old_card in _discard_cards:
-		var old_card_id := int(old_card.get_meta(&"card_id", -1))
-		if visible_ids.has(old_card_id):
-			continue
-		# 固定容量为两张；新牌入栈时最底层牌立即被挤出，不做淡出。
-		_free_discard_card(old_card)
-
-	_discard_cards = next_cards
+		_discard_cards.append(discard_card)
 	_discard_card_ids = visible_ids
 
 func clear_discard() -> void:
-	_stop_discard_transition()
 	for discard_card in _discard_cards:
 		_free_discard_card(discard_card)
 	_discard_cards.clear()
@@ -136,22 +106,6 @@ func _create_discard_card(card_data: Dictionary) -> TextureRect:
 	discard_card.set_meta(&"card_id", card.card_id)
 	add_child(discard_card)
 	return discard_card
-
-func _discard_slot_position(visible_index: int, visible_count: int) -> Vector2:
-	if visible_count < 2:
-		return discard_pile_anchor.position
-	# 两张牌共用同一个 X；旧牌向下露出一层，最新牌固定在锚点最上方。
-	var offset_y := DISCARD_LAYER_OFFSET_Y if visible_index == 0 else 0.0
-	return discard_pile_anchor.position + Vector2(0.0, offset_y)
-
-func _ensure_discard_transition_tween() -> void:
-	if _discard_transition_tween == null:
-		_discard_transition_tween = create_tween().set_parallel(true)
-
-func _stop_discard_transition() -> void:
-	if _discard_transition_tween != null and _discard_transition_tween.is_valid():
-		_discard_transition_tween.kill()
-	_discard_transition_tween = null
 
 func _free_discard_card(discard_card: TextureRect) -> void:
 	if not is_instance_valid(discard_card):

@@ -255,29 +255,17 @@ func _validate_hand_ui(module: Control) -> bool:
 	var second_discard_id := int(discarded_state.loose_card_ids[0])
 	hand_view._on_card_tapped(second_discard_id)
 	discard_button.pressed.emit()
-	await get_tree().create_timer(0.3).timeout
+	await get_tree().process_frame
 	discarded_state = module.hand_snapshot()
 	if discarded_state.cards.size() != 9 or discarded_state.discard_pile.size() != 2:
-		_fail("第二次弃牌没有保留最近两张弃牌数据")
+		_fail("第二次弃牌没有保留弃牌历史数据")
 		return false
-	var discard_old := module.get_node("DeckArea/DiscardCardOld") as TextureRect
 	var discard_top := module.get_node("DeckArea/DiscardCardTop") as TextureRect
-	var discard_anchor_x: float = (module.get_node("DeckArea/DiscardPileAnchor") as Control).position.x
-	var discard_anchor_y: float = (module.get_node("DeckArea/DiscardPileAnchor") as Control).position.y
-	if discard_old == null or discard_top == null or not is_zero_approx(discard_old.rotation) or not is_zero_approx(discard_top.rotation):
-		_fail("弃牌堆中的牌不应旋转")
+	if module.get_node("DeckArea").has_node("DiscardCardOld"):
+		_fail("弃牌堆不应显示堆叠底牌")
 		return false
-	if not is_equal_approx(discard_old.position.x, discard_anchor_x) or not is_equal_approx(discard_top.position.x, discard_anchor_x):
-		_fail("最近两张弃牌没有在同一位置纵向叠放")
-		return false
-	if not is_equal_approx(discard_old.position.y, discard_anchor_y + 1.4) or not is_equal_approx(discard_top.position.y, discard_anchor_y):
-		_fail("弃牌堆没有露出底牌的轻微层间距")
-		return false
-	if not is_equal_approx(discard_old.modulate.a, 1.0) or not is_equal_approx(discard_top.modulate.a, 1.0):
-		_fail("弃牌不应通过透明度淡入或淡出")
-		return false
-	if int(discard_old.get_meta(&"card_id", -1)) != discard_card_id or int(discard_top.get_meta(&"card_id", -1)) != second_discard_id:
-		_fail("弃牌堆最近两张牌的先后层级错误")
+	if discard_top == null or int(discard_top.get_meta(&"card_id", -1)) != second_discard_id:
+		_fail("弃牌堆没有只显示最新弃牌")
 		return false
 
 	var third_discard_id := int(discarded_state.loose_card_ids[0])
@@ -285,25 +273,12 @@ func _validate_hand_ui(module: Control) -> bool:
 	discard_button.pressed.emit()
 	await get_tree().process_frame
 	discarded_state = module.hand_snapshot()
-	discard_old = module.get_node("DeckArea/DiscardCardOld") as TextureRect
 	discard_top = module.get_node("DeckArea/DiscardCardTop") as TextureRect
 	if discarded_state.cards.size() != 8 or discarded_state.discard_pile.size() != 3:
 		_fail("弃牌历史没有保存第三张弃牌")
 		return false
-	if discard_old.position.y <= discard_anchor_y:
-		_fail("原顶牌没有向下过渡为底牌")
-		return false
-	await get_tree().create_timer(0.3).timeout
-	discard_old = module.get_node("DeckArea/DiscardCardOld") as TextureRect
-	discard_top = module.get_node("DeckArea/DiscardCardTop") as TextureRect
-	if int(discard_old.get_meta(&"card_id", -1)) != second_discard_id or int(discard_top.get_meta(&"card_id", -1)) != third_discard_id:
-		_fail("弃牌超过两张后画面没有只保留最近两张")
-		return false
-	if not is_equal_approx(discard_old.position.x, discard_anchor_x) or not is_equal_approx(discard_top.position.x, discard_anchor_x):
-		_fail("弃牌切换动画结束后没有保持纵向叠放")
-		return false
-	if not is_equal_approx(discard_old.position.y, discard_anchor_y + 1.4) or not is_equal_approx(discard_top.position.y, discard_anchor_y):
-		_fail("弃牌切换动画结束后没有回到固定堆叠层位")
+	if module.get_node("DeckArea").has_node("DiscardCardOld") or int(discard_top.get_meta(&"card_id", -1)) != third_discard_id:
+		_fail("新弃牌没有直接替换旧弃牌的显示")
 		return false
 
 	# 直接驱动手势控制器验证：长按只拖单张，且不改变用户选择的排序规则。
