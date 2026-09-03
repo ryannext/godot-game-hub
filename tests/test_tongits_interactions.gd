@@ -93,6 +93,8 @@ func test_discard_removes_only_a_loose_card() -> void:
 	assert_eq(int(discarded.card_id), 3, "弃牌命令应返回被打出的牌面数据")
 	assert_false(state.cards.any(func(card: Dictionary) -> bool: return int(card.card_id) == 3), "弃牌后手牌数据不应继续包含该牌")
 	assert_false(state.loose_card_ids.has(3), "弃牌后散牌顺序不应继续包含该牌")
+	assert_eq(state.discard_pile.size(), 1, "弃牌快照应记录弃牌历史")
+	assert_eq(int(state.discard_pile[-1].card_id), 3, "弃牌历史末尾应为最近打出的牌")
 
 func test_meld_unfold_only_runs_when_explicitly_requested() -> void:
 	var view := track(TongitsMeldAreaView.new()) as TongitsMeldAreaView

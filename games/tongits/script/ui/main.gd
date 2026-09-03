@@ -140,6 +140,7 @@ func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	var mode := int(snapshot.sort_mode)
 	_deck_remaining_count = int(snapshot.get("deck_remaining_count", 0))
 	deck_count_label.text = str(_deck_remaining_count)
+	deck_area.call("set_discard_cards", snapshot.get("discard_pile", []))
 	auto_arrange_button.set_pressed_no_signal(bool(snapshot.get("auto_arrange_enabled", true)))
 	sort_rule_button.text = "点数优先" if mode == TongitsHandServerSimulator.SortMode.RANK_SUIT else "花色优先"
 	_update_action_buttons()
@@ -177,10 +178,7 @@ func _on_play_meld_pressed() -> void:
 func _on_discard_pressed() -> void:
 	if _selected_group_id >= 0 or _selected_loose_ids.size() != 1:
 		return
-	var discarded_card := _server.discard_card(_selected_loose_ids[0])
-	if discarded_card.is_empty():
-		return
-	deck_area.call("show_discard", discarded_card)
+	_server.discard_card(_selected_loose_ids[0])
 
 func _update_action_buttons() -> void:
 	# 没有对应牌局上下文的操作必须保持禁用，不能只靠按钮外观暗示可操作。

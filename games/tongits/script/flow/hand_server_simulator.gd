@@ -22,6 +22,7 @@ const SUIT_PRIORITY := {
 var _cards: Dictionary = {}
 var _groups: Array[Dictionary] = []
 var _loose_card_ids: Array[int] = []
+var _discard_pile: Array[Dictionary] = []
 var _sort_mode := SortMode.RANK_SUIT
 var _auto_arrange_enabled := true
 var _revision := 0
@@ -33,6 +34,7 @@ func reset_table() -> void:
 	_cards.clear()
 	_groups.clear()
 	_loose_card_ids.clear()
+	_discard_pile.clear()
 	_next_group_id = 1
 	_deck_remaining_count = 0
 	_sort_mode = SortMode.RANK_SUIT
@@ -43,6 +45,7 @@ func start_deal(seed_value := 20260828) -> void:
 	_cards.clear()
 	_groups.clear()
 	_loose_card_ids.clear()
+	_discard_pile.clear()
 	_next_group_id = 1
 	_deck_remaining_count = 0
 	_sort_mode = SortMode.RANK_SUIT
@@ -152,6 +155,7 @@ func discard_card(card_id: int) -> Dictionary:
 	var discarded_card := {"card_id": card.card_id, "suit": card.suit, "rank": card.rank}
 	_loose_card_ids.remove_at(loose_index)
 	_cards.erase(card_id)
+	_discard_pile.append(discarded_card)
 	_commit()
 	return discarded_card
 
@@ -205,6 +209,7 @@ func snapshot() -> Dictionary:
 		"cards": card_data,
 		"groups": _groups.duplicate(true),
 		"loose_card_ids": _loose_card_ids.duplicate(),
+		"discard_pile": _discard_pile.duplicate(true),
 	}
 
 func _sort_loose_cards() -> void:

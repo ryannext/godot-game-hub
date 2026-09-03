@@ -10,6 +10,8 @@ const LEFT_HALF_PIVOT_X := 1.0
 const RIGHT_HALF_PIVOT_X := 0.0
 const TABLE_FAR_SCALE := 0.94
 const TABLE_NEAR_SCALE := 1.06
+const DISCARD_OFFSETS := [Vector2(-3.0, 2.0), Vector2(3.0, -1.0)]
+const DISCARD_ROTATIONS_DEGREES := [-3.0, 3.0]
 
 @onready var count_badge: Control = $DeckCountBadge
 @onready var count_label: Label = $DeckCountBadge/DeckCountLabel
@@ -17,7 +19,7 @@ const TABLE_NEAR_SCALE := 1.06
 @onready var discard_pile_anchor: Control = $DiscardPileAnchor
 
 var _card_count := 0
-var _discard_card: TextureRect
+var _discard_cards: Array[TextureRect] = []
 
 func _ready() -> void:
 	# 运行时按真实剩余数量生成牌背；场景文件不再保存固定的三层示意节点。
@@ -60,33 +62,43 @@ func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	perspective_material.set_shader_parameter(&"near_scale", TABLE_NEAR_SCALE)
 	return perspective_material
 
-func show_discard(card_data: Dictionary) -> void:
+func set_discard_cards(card_data_list: Array) -> void:
 	clear_discard()
-	var card := TongitsCard.new(
-		int(card_data.get("suit", TongitsCard.Suit.CLUBS)),
-		int(card_data.get("rank", 1)),
-		int(card_data.get("card_id", -1))
-	)
-	_discard_card = TextureRect.new()
-	_discard_card.name = "DiscardCard"
-	_discard_card.position = discard_pile_anchor.position
-	_discard_card.size = CARD_SIZE
-	_discard_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_discard_card.texture = TongitsCardArtLibrary.texture_for(card)
-	_discard_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_discard_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_discard_card.material = _create_table_half_material(RIGHT_HALF_PIVOT_X)
-	_discard_card.z_index = 1
-	add_child(_discard_card)
+	var first_visible_index := maxi(0, card_data_list.size() - 2)
+	var visible_cards := card_data_list.slice(first_visible_index)
+	for visible_index in visible_cards.size():
+		var card_data: Dictionary = visible_cards[visible_index]
+		var card := TongitsCard.new(
+			int(card_data.get("suit", TongitsCard.Suit.CLUBS)),
+			int(card_data.get("rank", 1)),
+			int(card_data.get("card_id", -1))
+		)
+		var discard_card := TextureRect.new()
+		discard_card.name = "DiscardCardTop" if visible_index == visible_cards.size() - 1 else "DiscardCardOld"
+		discard_card.position = discard_pile_anchor.position
+		discard_card.size = CARD_SIZE
+		discard_card.pivot_offset = CARD_SIZE * 0.5
+		if visible_cards.size() == 2:
+			discard_card.position += DISCARD_OFFSETS[visible_index]
+			discard_card.rotation = deg_to_rad(DISCARD_ROTATIONS_DEGREES[visible_index])
+		discard_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		discard_card.texture = TongitsCardArtLibrary.texture_for(card)
+		discard_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		discard_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		discard_card.material = _create_table_half_material(RIGHT_HALF_PIVOT_X)
+		discard_card.z_index = visible_index + 1
+		discard_card.set_meta(&"card_id", card.card_id)
+		add_child(discard_card)
+		_discard_cards.append(discard_card)
 
 func clear_discard() -> void:
-	if not is_instance_valid(_discard_card):
-		_discard_card = null
-		return
-	if _discard_card.get_parent() == self:
-		remove_child(_discard_card)
-	_discard_card.queue_free()
-	_discard_card = null
+	for discard_card in _discard_cards:
+		if not is_instance_valid(discard_card):
+			continue
+		if discard_card.get_parent() == self:
+			remove_child(discard_card)
+		discard_card.queue_free()
+	_discard_cards.clear()
 
 func card_count() -> int:
 	return _card_count
