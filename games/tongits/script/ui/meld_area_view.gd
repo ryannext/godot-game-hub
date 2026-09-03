@@ -11,13 +11,14 @@ const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
 
 @export_category("牌组排列")
 @export var flow_direction := FlowDirection.LEFT_TO_RIGHT
-@export var one_meld_per_row := true
-@export var card_size := Vector2(50.4, 67.5)
-@export_range(4.0, 64.0, 0.5) var card_step := 29.0
-@export_range(0.0, 48.0, 0.5) var meld_gap := 16.0
+@export var wrap_melds := true
+@export var center_rows_vertically := false
+@export var card_size := Vector2(32.0, 43.0)
+@export_range(4.0, 64.0, 0.5) var card_step := 21.0
+@export_range(0.0, 48.0, 0.5) var meld_gap := 14.0
 @export_range(0.0, 48.0, 0.5) var row_gap := 8.0
-@export_range(0.0, 48.0, 0.5) var horizontal_padding := 12.0
-@export_range(0.0, 48.0, 0.5) var vertical_padding := 10.0
+@export_range(0.0, 48.0, 0.5) var horizontal_padding := 32.0
+@export_range(0.0, 48.0, 0.5) var vertical_padding := 12.0
 
 @export_category("桌面透视")
 @export_range(-45.0, 45.0, 0.5) var perspective_rotation_x := 10.0
@@ -84,62 +85,74 @@ func calculate_layout(meld_sizes: Array[int]) -> Array:
 		positions.append([])
 	if meld_sizes.is_empty():
 		return positions
-	if one_meld_per_row:
-		_layout_rows(meld_sizes, positions)
-	else:
-		_layout_single_row(meld_sizes, positions)
+	_layout_wrapped_rows(meld_sizes, positions)
 	return positions
 
-func _layout_rows(meld_sizes: Array[int], positions: Array) -> void:
+func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
 	var usable_width := maxf(0.0, size.x - horizontal_padding * 2.0)
-	var usable_height := maxf(0.0, size.y - vertical_padding * 2.0 - card_size.y)
-	var row_step := 0.0
-	if meld_sizes.size() > 1:
-		row_step = minf(card_size.y + row_gap, usable_height / float(meld_sizes.size() - 1))
-
-	for meld_index in meld_sizes.size():
-		var count := maxi(0, meld_sizes[meld_index])
-		var step := _fit_card_step(count, usable_width)
-		var y := vertical_padding + row_step * meld_index
-		for card_index in count:
-			var x := horizontal_padding + step * card_index
-			if flow_direction == FlowDirection.RIGHT_TO_LEFT:
-				x = size.x - horizontal_padding - card_size.x - step * card_index
-			positions[meld_index].append(Vector2(x, y))
-
-func _layout_single_row(meld_sizes: Array[int], positions: Array) -> void:
-	var valid_meld_count := 0
-	var card_interval_count := 0
-	for count in meld_sizes:
-		if count > 0:
-			valid_meld_count += 1
-			card_interval_count += count - 1
-	if valid_meld_count == 0:
-		return
-
-	var available_width := maxf(0.0, size.x - horizontal_padding * 2.0)
-	var fixed_width := card_size.x * valid_meld_count + meld_gap * maxi(0, valid_meld_count - 1)
-	var fitted_step := card_step
-	if card_interval_count > 0:
-		fitted_step = minf(card_step, maxf(0.0, (available_width - fixed_width) / float(card_interval_count)))
-	var total_width := fixed_width + fitted_step * card_interval_count
-	var cursor_x := horizontal_padding
-	if flow_direction == FlowDirection.RIGHT_TO_LEFT:
-		cursor_x = size.x - horizontal_padding - total_width
-	var y := maxf(vertical_padding, (size.y - card_size.y) * 0.5)
-
+	var visual_card_size := _projected_card_extent()
+	var visual_overhang := (visual_card_size - card_size) * 0.5
+	var rows: Array[Array] = []
+	var current_row: Array[Dictionary] = []
+	var current_width := 0.0
 	for meld_index in meld_sizes.size():
 		var count := maxi(0, meld_sizes[meld_index])
 		if count == 0:
 			continue
-		for card_index in count:
-			positions[meld_index].append(Vector2(cursor_x + fitted_step * card_index, y))
-		cursor_x += card_size.x + fitted_step * maxi(0, count - 1) + meld_gap
+		var step := _fit_card_step(count, usable_width)
+		var meld_width := visual_card_size.x + step * maxi(0, count - 1)
+		var required_width := meld_width if current_row.is_empty() else meld_gap + meld_width
+		if wrap_melds and not current_row.is_empty() and current_width + required_width > usable_width:
+			rows.append(current_row)
+			current_row = []
+			current_width = 0.0
+		current_row.append({
+			"meld_index": meld_index,
+			"card_count": count,
+			"step": step,
+			"width": meld_width,
+		})
+		current_width += meld_width if current_width == 0.0 else meld_gap + meld_width
+	if not current_row.is_empty():
+		rows.append(current_row)
+	if rows.is_empty():
+		return
+
+	var usable_height := maxf(0.0, size.y - vertical_padding * 2.0 - visual_card_size.y)
+	var row_step := 0.0
+	if rows.size() > 1:
+		row_step = minf(visual_card_size.y + row_gap, usable_height / float(rows.size() - 1))
+	var block_height := visual_card_size.y + row_step * maxi(0, rows.size() - 1)
+	var first_y := vertical_padding
+	if center_rows_vertically:
+		first_y = maxf(vertical_padding, (size.y - block_height) * 0.5)
+
+	for row_index in rows.size():
+		var cursor_x := horizontal_padding
+		if flow_direction == FlowDirection.RIGHT_TO_LEFT:
+			cursor_x = size.x - horizontal_padding
+		for entry: Dictionary in rows[row_index]:
+			var meld_index := int(entry.meld_index)
+			var count := int(entry.card_count)
+			var step := float(entry.step)
+			for card_index in count:
+				var x := cursor_x + visual_overhang.x + step * card_index
+				if flow_direction == FlowDirection.RIGHT_TO_LEFT:
+					x = cursor_x - card_size.x - visual_overhang.x - step * card_index
+				positions[meld_index].append(Vector2(x, first_y + visual_overhang.y + row_step * row_index))
+			if flow_direction == FlowDirection.LEFT_TO_RIGHT:
+				cursor_x += float(entry.width) + meld_gap
+			else:
+				cursor_x -= float(entry.width) + meld_gap
 
 func _fit_card_step(card_count: int, available_width: float) -> float:
 	if card_count <= 1:
 		return 0.0
-	return minf(card_step, maxf(0.0, (available_width - card_size.x) / float(card_count - 1)))
+	return minf(card_step, maxf(0.0, (available_width - _projected_card_extent().x) / float(card_count - 1)))
+
+func _projected_card_extent() -> Vector2:
+	# Meld 卡牌通过缩放完整原生 Shader 画布得到目标尺寸，外部布局直接使用目标显示尺寸。
+	return card_size
 
 func _relayout() -> void:
 	if _view_slots.is_empty():

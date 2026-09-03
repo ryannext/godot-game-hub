@@ -179,11 +179,12 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("7_meld_area")
-one_meld_per_row = false
-card_size = Vector2(56, 75)
-card_step = 32.0
-horizontal_padding = 16.0
-vertical_padding = 8.0
+center_rows_vertically = true
+card_size = Vector2(34, 46)
+card_step = 22.0
+meld_gap = 18.0
+horizontal_padding = 20.0
+vertical_padding = 10.0
 
 [node name="DeckArea" type="Control" parent="." unique_id=334828628]
 unique_name_in_owner = true

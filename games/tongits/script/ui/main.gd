@@ -9,6 +9,9 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var group_action_button: Button = %GroupActionButton
 @onready var layoff_button: Button = %LayoffButton
 @onready var draw_button: Button = %DrawButton
+@onready var opponent_left_meld_area: TongitsMeldAreaView = %OpponentLeftMeldArea
+@onready var opponent_right_meld_area: TongitsMeldAreaView = %OpponentRightMeldArea
+@onready var player_meld_area: TongitsMeldAreaView = %PlayerMeldArea
 @onready var deck_area: Control = %DeckArea
 @onready var deck_count_label: Label = %DeckCountLabel
 
@@ -78,13 +81,56 @@ func _deal_hand() -> void:
 	hand_view.prepare_deal_animation()
 	# 固定基础 seed 加计数既方便复现，也能让“重新发牌”得到不同手牌。
 	_server.start_deal(20260828 + _deal_counter)
+	_show_test_melds()
 
 func _initialize_empty_table() -> void:
 	# 空桌阶段不保留上一局手牌、发牌层、弃牌占位或牌数徽章。
 	deck_area.call("set_card_count", 0, false)
 	deck_area.visible = false
 	_deck_remaining_count = 0
+	opponent_left_meld_area.clear_melds()
+	opponent_right_meld_area.clear_melds()
+	player_meld_area.clear_melds()
 	_server.reset_table()
+
+func _show_test_melds() -> void:
+	# 三个区域使用固定的有效牌组，专门用于观察方向、重叠距离和换行效果。
+	opponent_left_meld_area.apply_snapshot(_build_test_meld_snapshot([
+		[[TongitsCard.Suit.DIAMONDS, 3], [TongitsCard.Suit.CLUBS, 3], [TongitsCard.Suit.SPADES, 3]],
+		[[TongitsCard.Suit.DIAMONDS, 5], [TongitsCard.Suit.CLUBS, 5], [TongitsCard.Suit.HEARTS, 5], [TongitsCard.Suit.SPADES, 5]],
+		[[TongitsCard.Suit.HEARTS, 8], [TongitsCard.Suit.HEARTS, 9], [TongitsCard.Suit.HEARTS, 10]],
+		[[TongitsCard.Suit.DIAMONDS, 1], [TongitsCard.Suit.CLUBS, 1], [TongitsCard.Suit.HEARTS, 1], [TongitsCard.Suit.SPADES, 1]],
+		[[TongitsCard.Suit.DIAMONDS, 12], [TongitsCard.Suit.CLUBS, 12], [TongitsCard.Suit.SPADES, 12]],
+	], 100))
+	opponent_right_meld_area.apply_snapshot(_build_test_meld_snapshot([
+		[[TongitsCard.Suit.DIAMONDS, 11], [TongitsCard.Suit.CLUBS, 11], [TongitsCard.Suit.SPADES, 11]],
+		[[TongitsCard.Suit.DIAMONDS, 9], [TongitsCard.Suit.HEARTS, 9], [TongitsCard.Suit.SPADES, 9]],
+		[[TongitsCard.Suit.CLUBS, 1], [TongitsCard.Suit.CLUBS, 2], [TongitsCard.Suit.CLUBS, 3], [TongitsCard.Suit.CLUBS, 4]],
+		[[TongitsCard.Suit.DIAMONDS, 8], [TongitsCard.Suit.CLUBS, 8], [TongitsCard.Suit.HEARTS, 8], [TongitsCard.Suit.SPADES, 8]],
+		[[TongitsCard.Suit.DIAMONDS, 6], [TongitsCard.Suit.DIAMONDS, 7], [TongitsCard.Suit.DIAMONDS, 8]],
+	], 200))
+	player_meld_area.apply_snapshot(_build_test_meld_snapshot([
+		[[TongitsCard.Suit.DIAMONDS, 6], [TongitsCard.Suit.CLUBS, 6], [TongitsCard.Suit.SPADES, 6]],
+		[[TongitsCard.Suit.DIAMONDS, 13], [TongitsCard.Suit.HEARTS, 13], [TongitsCard.Suit.SPADES, 13]],
+		[[TongitsCard.Suit.DIAMONDS, 4], [TongitsCard.Suit.CLUBS, 4], [TongitsCard.Suit.SPADES, 4]],
+	], 300))
+
+func _build_test_meld_snapshot(meld_specs: Array, first_card_id: int) -> Dictionary:
+	var cards: Array[Dictionary] = []
+	var groups: Array[Dictionary] = []
+	var next_card_id := first_card_id
+	for meld_index in meld_specs.size():
+		var card_ids: Array[int] = []
+		for card_spec: Array in meld_specs[meld_index]:
+			cards.append({
+				"card_id": next_card_id,
+				"suit": int(card_spec[0]),
+				"rank": int(card_spec[1]),
+			})
+			card_ids.append(next_card_id)
+			next_card_id += 1
+		groups.append({"group_id": meld_index + 1, "card_ids": card_ids})
+	return {"cards": cards, "groups": groups}
 
 func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	hand_view.apply_snapshot(snapshot)

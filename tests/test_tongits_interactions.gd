@@ -17,22 +17,24 @@ func test_mouse_release_without_press_does_not_tap() -> void:
 
 func test_meld_areas_follow_each_players_inward_flow() -> void:
 	var view := track(TongitsMeldAreaView.new()) as TongitsMeldAreaView
-	view.size = Vector2(300, 220)
+	view.size = Vector2(350, 220)
 	view.card_size = Vector2(50, 70)
 	view.card_step = 30.0
 	view.horizontal_padding = 10.0
 	view.vertical_padding = 10.0
-	view.one_meld_per_row = true
+	view.meld_gap = 20.0
+	view.wrap_melds = true
 	var left_layout := view.calculate_layout([3, 2, 4])
 	assert_true(left_layout[0][0].x < left_layout[0][1].x, "左侧对手牌组应从左向右展开")
-	assert_true(left_layout[0][0].y < left_layout[1][0].y and left_layout[1][0].y < left_layout[2][0].y, "对手的每个牌组应各占一行")
+	assert_eq(left_layout[0][0].y, left_layout[1][0].y, "同一行放得下时多个牌组应连续排列")
+	assert_true(left_layout[2][0].y > left_layout[1][0].y, "当前行放不下完整牌组时应整体换行")
 
 	view.flow_direction = TongitsMeldAreaView.FlowDirection.RIGHT_TO_LEFT
 	var right_layout := view.calculate_layout([3, 2, 4])
 	assert_true(right_layout[0][0].x > right_layout[0][1].x, "右侧对手牌组应从右向左展开")
 
 	view.flow_direction = TongitsMeldAreaView.FlowDirection.LEFT_TO_RIGHT
-	view.one_meld_per_row = false
+	view.size = Vector2(500, 100)
 	var player_layout := view.calculate_layout([3, 3])
 	assert_eq(player_layout[0][0].y, player_layout[1][0].y, "玩家的多个牌组应处于同一行")
 	assert_true(player_layout[1][0].x > player_layout[0][-1].x, "玩家牌组应按组从左向右排列")

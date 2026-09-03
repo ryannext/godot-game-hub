@@ -66,11 +66,14 @@ func set_perspective(rotation_x_degrees: float, camera_fov: float = DEFAULT_PERS
 	perspective_rotation_x = rotation_x_degrees
 
 func set_display_size(display_size: Vector2) -> void:
-	# 桌面牌组复用同一张卡牌视图，但尺寸小于底部手牌。
-	custom_minimum_size = display_size
-	size = display_size
-	pivot_offset = display_size * 0.5
-	_set_shader_parameter(&"item_size_px", display_size)
+	# TextureRect 加入场景树后会按牌面纹理恢复原生最小尺寸；桌面牌因此保留原生画布并整体缩放。
+	# 从左上角缩放可让 MeldArea 的逻辑坐标与实际可见起点保持一致。
+	var native_size := Vector2(112.0, 150.0)
+	custom_minimum_size = native_size
+	size = native_size
+	pivot_offset = Vector2.ZERO
+	scale = Vector2(display_size.x / native_size.x, display_size.y / native_size.y)
+	_set_shader_parameter(&"item_size_px", native_size)
 
 func _set_shader_parameter(parameter: StringName, value: Variant) -> void:
 	var shader_material := material as ShaderMaterial

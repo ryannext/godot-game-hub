@@ -187,6 +187,13 @@ func _validate_hand_ui(module: Control) -> bool:
 	if initial_state.cards.size() != 13:
 		_fail("点击测试发牌并等待后没有生成 13 张手牌")
 		return false
+	if (
+		module.get_node("OpponentLeftMeldArea").get_child_count() != 17
+		or module.get_node("OpponentRightMeldArea").get_child_count() != 17
+		or module.get_node("PlayerMeldArea").get_child_count() != 9
+	):
+		_fail("测试发牌没有向三个 MeldArea 生成预期的测试牌组")
+		return false
 	var initial_group_count: int = initial_state.groups.size()
 	var selected_ids: Array = initial_state.loose_card_ids.slice(0, 2)
 	hand_view._on_card_tapped(int(selected_ids[0]))
