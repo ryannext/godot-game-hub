@@ -10,7 +10,7 @@ const LEFT_HALF_PIVOT_X := 1.0
 const RIGHT_HALF_PIVOT_X := 0.0
 const TABLE_FAR_SCALE := 0.94
 const TABLE_NEAR_SCALE := 1.06
-const DISCARD_SLOT_OFFSET_X := 10.0
+const DISCARD_LAYER_OFFSET_Y := 1.4
 const DISCARD_TRANSITION_SECONDS := 0.22
 
 @onready var count_badge: Control = $DeckCountBadge
@@ -21,7 +21,6 @@ const DISCARD_TRANSITION_SECONDS := 0.22
 var _card_count := 0
 var _discard_cards: Array[TextureRect] = []
 var _discard_card_ids: Array[int] = []
-var _discard_exiting_cards: Array[TextureRect] = []
 var _discard_transition_tween: Tween
 
 func _ready() -> void:
@@ -94,31 +93,23 @@ func set_discard_cards(card_data_list: Array) -> void:
 		var target_position := _discard_slot_position(visible_index, visible_cards.size())
 		if _discard_card_ids.is_empty():
 			discard_card.position = target_position
-			discard_card.modulate = Color.WHITE
-		else:
+		elif not is_new_card:
 			_ensure_discard_transition_tween()
-			if is_new_card:
-				discard_card.position = target_position
-				discard_card.modulate = Color(1.0, 1.0, 1.0, 0.0)
-				_discard_transition_tween.tween_property(discard_card, "modulate:a", 1.0, DISCARD_TRANSITION_SECONDS)
-			else:
-				_discard_transition_tween.tween_property(discard_card, "position", target_position, DISCARD_TRANSITION_SECONDS).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			_discard_transition_tween.tween_property(discard_card, "position", target_position, DISCARD_TRANSITION_SECONDS).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		else:
+			discard_card.position = target_position
+		discard_card.modulate = Color.WHITE
 		next_cards.append(discard_card)
 
 	for old_card in _discard_cards:
 		var old_card_id := int(old_card.get_meta(&"card_id", -1))
 		if visible_ids.has(old_card_id):
 			continue
-		old_card.name = "DiscardCardExiting"
-		old_card.z_index = 0
-		_discard_exiting_cards.append(old_card)
-		_ensure_discard_transition_tween()
-		_discard_transition_tween.tween_property(old_card, "modulate:a", 0.0, DISCARD_TRANSITION_SECONDS)
+		# 固定容量为两张；新牌入栈时最底层牌立即被挤出，不做淡出。
+		_free_discard_card(old_card)
 
 	_discard_cards = next_cards
 	_discard_card_ids = visible_ids
-	if _discard_transition_tween != null:
-		_discard_transition_tween.finished.connect(_finish_discard_transition)
 
 func clear_discard() -> void:
 	_stop_discard_transition()
@@ -149,8 +140,9 @@ func _create_discard_card(card_data: Dictionary) -> TextureRect:
 func _discard_slot_position(visible_index: int, visible_count: int) -> Vector2:
 	if visible_count < 2:
 		return discard_pile_anchor.position
-	var offset_x := -DISCARD_SLOT_OFFSET_X if visible_index == 0 else DISCARD_SLOT_OFFSET_X
-	return discard_pile_anchor.position + Vector2(offset_x, 0.0)
+	# 两张牌共用同一个 X；旧牌向下露出一层，最新牌固定在锚点最上方。
+	var offset_y := DISCARD_LAYER_OFFSET_Y if visible_index == 0 else 0.0
+	return discard_pile_anchor.position + Vector2(0.0, offset_y)
 
 func _ensure_discard_transition_tween() -> void:
 	if _discard_transition_tween == null:
@@ -160,15 +152,6 @@ func _stop_discard_transition() -> void:
 	if _discard_transition_tween != null and _discard_transition_tween.is_valid():
 		_discard_transition_tween.kill()
 	_discard_transition_tween = null
-	for discard_card in _discard_exiting_cards:
-		_free_discard_card(discard_card)
-	_discard_exiting_cards.clear()
-
-func _finish_discard_transition() -> void:
-	_discard_transition_tween = null
-	for discard_card in _discard_exiting_cards:
-		_free_discard_card(discard_card)
-	_discard_exiting_cards.clear()
 
 func _free_discard_card(discard_card: TextureRect) -> void:
 	if not is_instance_valid(discard_card):
