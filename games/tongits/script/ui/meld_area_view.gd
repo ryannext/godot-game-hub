@@ -91,7 +91,7 @@ func calculate_layout(meld_sizes: Array[int]) -> Array:
 
 func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
 	# 背景框由全桌 Shader 以屏幕中心做梯形透视，牌组节点本身仍使用普通坐标。
-	# 取透视后背景框在上下边界的交集，保证每一行卡牌都落在可见框线以内。
+	# 保守宽度只用于决定换行；实际摆放时会按每一行的高度重新读取斜边位置。
 	var safe_horizontal_bounds := _table_safe_horizontal_bounds()
 	var content_left := safe_horizontal_bounds.x + horizontal_padding
 	var content_right := safe_horizontal_bounds.y - horizontal_padding
@@ -134,9 +134,13 @@ func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
 		first_y = maxf(vertical_padding, (size.y - block_height) * 0.5)
 
 	for row_index in rows.size():
-		var cursor_x := content_left
+		var row_y := first_y + row_step * row_index
+		var row_bounds := _table_safe_horizontal_bounds(row_y, visual_card_size.y)
+		var row_content_left := row_bounds.x + horizontal_padding
+		var row_content_right := row_bounds.y - horizontal_padding
+		var cursor_x := row_content_left
 		if flow_direction == FlowDirection.RIGHT_TO_LEFT:
-			cursor_x = content_right
+			cursor_x = row_content_right
 		for entry: Dictionary in rows[row_index]:
 			var meld_index := int(entry.meld_index)
 			var count := int(entry.card_count)
@@ -145,7 +149,7 @@ func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
 				var x := cursor_x + visual_overhang.x + step * card_index
 				if flow_direction == FlowDirection.RIGHT_TO_LEFT:
 					x = cursor_x - card_size.x - visual_overhang.x - step * card_index
-				positions[meld_index].append(Vector2(x, first_y + visual_overhang.y + row_step * row_index))
+				positions[meld_index].append(Vector2(x, row_y + visual_overhang.y))
 			if flow_direction == FlowDirection.LEFT_TO_RIGHT:
 				cursor_x += float(entry.width) + meld_gap
 			else:
@@ -160,7 +164,7 @@ func _projected_card_extent() -> Vector2:
 	# Meld 卡牌通过缩放完整原生 Shader 画布得到目标尺寸，外部布局直接使用目标显示尺寸。
 	return card_size
 
-func _table_safe_horizontal_bounds() -> Vector2:
+func _table_safe_horizontal_bounds(local_y := -1.0, content_height := -1.0) -> Vector2:
 	var fallback := Vector2(0.0, size.x)
 	if not follow_table_perspective_bounds or not is_inside_tree():
 		return fallback
@@ -176,10 +180,15 @@ func _table_safe_horizontal_bounds() -> Vector2:
 	var global_rect := get_global_rect()
 	var far_scale := float(shader_material.get_shader_parameter("far_scale"))
 	var near_scale := float(shader_material.get_shader_parameter("near_scale"))
-	var left_top := _project_table_x(global_rect.position.x, global_rect.position.y, viewport_size, far_scale, near_scale)
-	var left_bottom := _project_table_x(global_rect.position.x, global_rect.end.y, viewport_size, far_scale, near_scale)
-	var right_top := _project_table_x(global_rect.end.x, global_rect.position.y, viewport_size, far_scale, near_scale)
-	var right_bottom := _project_table_x(global_rect.end.x, global_rect.end.y, viewport_size, far_scale, near_scale)
+	var sample_top_y := global_rect.position.y
+	var sample_bottom_y := global_rect.end.y
+	if local_y >= 0.0 and content_height >= 0.0:
+		sample_top_y = global_rect.position.y + local_y
+		sample_bottom_y = minf(global_rect.end.y, sample_top_y + content_height)
+	var left_top := _project_table_x(global_rect.position.x, sample_top_y, viewport_size, far_scale, near_scale)
+	var left_bottom := _project_table_x(global_rect.position.x, sample_bottom_y, viewport_size, far_scale, near_scale)
+	var right_top := _project_table_x(global_rect.end.x, sample_top_y, viewport_size, far_scale, near_scale)
+	var right_bottom := _project_table_x(global_rect.end.x, sample_bottom_y, viewport_size, far_scale, near_scale)
 	var safe_left := maxf(left_top, left_bottom) - global_rect.position.x
 	var safe_right := minf(right_top, right_bottom) - global_rect.position.x
 	if safe_right <= safe_left:
