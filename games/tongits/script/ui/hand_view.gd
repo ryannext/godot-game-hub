@@ -71,6 +71,13 @@ const DEAL_FACE_GROW_SECONDS := 0.10
 # 默认让卡牌中心严格对齐 HandView 矩形中心；仅在美术需要微调时修改此偏移。
 @export var hand_center_offset_y := 0.0
 
+@export_category("手牌背景")
+@export var show_hand_background := true
+@export var hand_background_color := Color(0.07, 0.31, 0.68, 0.16)
+@export var hand_border_color := Color(0.38, 0.72, 1.0, 0.58)
+@export_range(0.0, 40.0, 1.0) var hand_background_corner_radius := 13.0
+@export_range(0.0, 8.0, 1.0) var hand_background_border_width := 2.0
+
 var _cards: Dictionary = {}
 var _card_views: Dictionary = {}
 var _groups: Array[Dictionary] = []
@@ -979,6 +986,7 @@ func _append_area_entries(entries: Array[Dictionary], card_ids: Array, area: Str
 		entries.append({"card_id": int(card_id), "area": area, "group_id": group_id})
 
 func _draw() -> void:
+	_draw_hand_background()
 	if _last_layout.is_empty():
 		return
 	if show_debug_outlines:
@@ -999,6 +1007,20 @@ func _draw() -> void:
 	if show_debug_outlines:
 		# 调试模式下显示实际发牌起点，便于按美术构图继续微调视口比例。
 		draw_rect(Rect2(_deal_origin_local(), CARD_SIZE), Color("ff8a65"), false, 3.0)
+
+func _draw_hand_background() -> void:
+	if not show_hand_background or size.x <= 0.0 or size.y <= 0.0:
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = hand_background_color
+	style.border_color = hand_border_color
+	var border_width := maxi(0, roundi(hand_background_border_width))
+	style.set_border_width_all(border_width)
+	var corner_radius := maxi(0, roundi(hand_background_corner_radius))
+	style.set_corner_radius_all(corner_radius)
+	# 将边框完整收在 HandView 内，避免贴视口边缘时被裁掉半个像素。
+	var inset := hand_background_border_width * 0.5
+	draw_style_box(style, Rect2(Vector2(inset, inset), size - Vector2.ONE * hand_background_border_width))
 
 func _group_color(group_type: int) -> Color:
 	match group_type:
