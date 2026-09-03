@@ -8,6 +8,7 @@ enum FlowDirection {
 }
 
 const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
+const TABLE_PERSPECTIVE_CARD_SHADER := preload("res://games/tongits/assets/shaders/table_perspective_card.gdshader")
 
 @export_category("牌组排列")
 @export var flow_direction := FlowDirection.LEFT_TO_RIGHT
@@ -21,9 +22,8 @@ const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
 @export_range(0.0, 48.0, 0.5) var vertical_padding := 12.0
 
 @export_category("桌面透视")
-@export var follow_table_perspective_bounds := true
-@export_range(-45.0, 45.0, 0.5) var perspective_rotation_x := 10.0
-@export_range(1.0, 179.0, 1.0) var perspective_fov := 75.0
+@export var use_table_perspective := true
+@export_range(0.0, 1.0, 0.05) var card_perspective_strength := 1.0
 
 var _card_views: Array[TongitsCardView] = []
 var _view_slots: Array[Dictionary] = []
@@ -59,7 +59,7 @@ func set_melds(melds: Array, card_data_list: Array) -> void:
 			view.name = "Meld%dCard%d" % [meld_index, card_index]
 			view.setup(cards_by_id[card_id])
 			view.set_display_size(card_size)
-			view.set_perspective(perspective_rotation_x, perspective_fov)
+			_apply_table_perspective(view)
 			view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			view.z_index = card_index
 			add_child(view)
@@ -90,12 +90,9 @@ func calculate_layout(meld_sizes: Array[int]) -> Array:
 	return positions
 
 func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
-	# 背景框由全桌 Shader 以屏幕中心做梯形透视，牌组节点本身仍使用普通坐标。
-	# 保守宽度只用于决定换行；实际摆放时会按每一行的高度重新读取斜边位置。
-	var safe_horizontal_bounds := _table_safe_horizontal_bounds()
-	var content_left := safe_horizontal_bounds.x + horizontal_padding
-	var content_right := safe_horizontal_bounds.y - horizontal_padding
-	var usable_width := maxf(0.0, content_right - content_left)
+	# 卡牌和背景框使用同一个全桌 Shader，因此这里保持未投影的普通布局坐标。
+	# GPU 会把两者一起映射到同一梯形空间，牌组自然跟随背景斜边。
+	var usable_width := maxf(0.0, size.x - horizontal_padding * 2.0)
 	var visual_card_size := _projected_card_extent()
 	var visual_overhang := (visual_card_size - card_size) * 0.5
 	var rows: Array[Array] = []
@@ -135,12 +132,9 @@ func _layout_wrapped_rows(meld_sizes: Array[int], positions: Array) -> void:
 
 	for row_index in rows.size():
 		var row_y := first_y + row_step * row_index
-		var row_bounds := _table_safe_horizontal_bounds(row_y, visual_card_size.y)
-		var row_content_left := row_bounds.x + horizontal_padding
-		var row_content_right := row_bounds.y - horizontal_padding
-		var cursor_x := row_content_left
+		var cursor_x := horizontal_padding
 		if flow_direction == FlowDirection.RIGHT_TO_LEFT:
-			cursor_x = row_content_right
+			cursor_x = size.x - horizontal_padding
 		for entry: Dictionary in rows[row_index]:
 			var meld_index := int(entry.meld_index)
 			var count := int(entry.card_count)
@@ -164,41 +158,26 @@ func _projected_card_extent() -> Vector2:
 	# Meld 卡牌通过缩放完整原生 Shader 画布得到目标尺寸，外部布局直接使用目标显示尺寸。
 	return card_size
 
-func _table_safe_horizontal_bounds(local_y := -1.0, content_height := -1.0) -> Vector2:
-	var fallback := Vector2(0.0, size.x)
-	if not follow_table_perspective_bounds or not is_inside_tree():
-		return fallback
+func _apply_table_perspective(view: TongitsCardView) -> void:
+	if not use_table_perspective or not is_inside_tree():
+		return
 	var perspective_zones := get_node_or_null("../TablePerspectiveZones") as CanvasItem
-	if perspective_zones == null:
-		return fallback
-	var shader_material := perspective_zones.material as ShaderMaterial
-	if shader_material == null:
-		return fallback
-	var viewport_size := get_viewport_rect().size
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
-		return fallback
-	var global_rect := get_global_rect()
-	var far_scale := float(shader_material.get_shader_parameter("far_scale"))
-	var near_scale := float(shader_material.get_shader_parameter("near_scale"))
-	var sample_top_y := global_rect.position.y
-	var sample_bottom_y := global_rect.end.y
-	if local_y >= 0.0 and content_height >= 0.0:
-		sample_top_y = global_rect.position.y + local_y
-		sample_bottom_y = minf(global_rect.end.y, sample_top_y + content_height)
-	var left_top := _project_table_x(global_rect.position.x, sample_top_y, viewport_size, far_scale, near_scale)
-	var left_bottom := _project_table_x(global_rect.position.x, sample_bottom_y, viewport_size, far_scale, near_scale)
-	var right_top := _project_table_x(global_rect.end.x, sample_top_y, viewport_size, far_scale, near_scale)
-	var right_bottom := _project_table_x(global_rect.end.x, sample_bottom_y, viewport_size, far_scale, near_scale)
-	var safe_left := maxf(left_top, left_bottom) - global_rect.position.x
-	var safe_right := minf(right_top, right_bottom) - global_rect.position.x
-	if safe_right <= safe_left:
-		return fallback
-	return Vector2(safe_left, safe_right)
+	var source_material := perspective_zones.material as ShaderMaterial if perspective_zones != null else null
+	if source_material == null:
+		return
+	var card_material := ShaderMaterial.new()
+	card_material.shader = TABLE_PERSPECTIVE_CARD_SHADER
+	card_material.set_shader_parameter("viewport_size", get_viewport_rect().size)
+	card_material.set_shader_parameter("far_scale", source_material.get_shader_parameter("far_scale"))
+	card_material.set_shader_parameter("near_scale", source_material.get_shader_parameter("near_scale"))
+	card_material.set_shader_parameter("perspective_strength", card_perspective_strength)
+	view.material = card_material
 
-func _project_table_x(x: float, y: float, viewport_size: Vector2, far_scale: float, near_scale: float) -> float:
-	var normalized_y := clampf(y / viewport_size.y, 0.0, 1.0)
-	var depth_scale := lerpf(far_scale, near_scale, normalized_y)
-	return viewport_size.x * 0.5 + (x - viewport_size.x * 0.5) * depth_scale
+func _sync_table_perspective_center(view: TongitsCardView) -> void:
+	var shader_material := view.material as ShaderMaterial
+	if shader_material == null or shader_material.shader != TABLE_PERSPECTIVE_CARD_SHADER:
+		return
+	shader_material.set_shader_parameter("item_center_y_px", view.global_position.y + card_size.y * 0.5)
 
 func _relayout() -> void:
 	if _view_slots.is_empty():
@@ -216,3 +195,4 @@ func _relayout() -> void:
 		var card_index := int(slot.card_index)
 		if is_instance_valid(view) and meld_index < positions.size() and card_index < positions[meld_index].size():
 			view.position = positions[meld_index][card_index]
+			_sync_table_perspective_center(view)

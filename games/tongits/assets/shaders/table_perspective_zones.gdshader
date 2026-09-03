@@ -2,8 +2,8 @@
 shader_type canvas_item;
 
 uniform vec2 viewport_size = vec2(1280.0, 720.0);
-uniform float far_scale : hint_range(0.5, 1.0) = 0.70;
-uniform float near_scale : hint_range(1.0, 1.4) = 1.18;
+uniform float far_scale : hint_range(0.5, 1.0) = 0.85;
+uniform float near_scale : hint_range(1.0, 1.4) = 1.09;
 
 void vertex() {
 	float normalized_y = clamp(VERTEX.y / viewport_size.y, 0.0, 1.0);
