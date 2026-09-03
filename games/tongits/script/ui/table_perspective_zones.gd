@@ -38,19 +38,20 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	var rects := _collect_zone_rects()
-	if rects.size() != 4:
+	if rects.size() != 5:
 		return
 	_draw_rounded_zone(_to_local_rect(rects[0]), zone_fill_color, zone_border_color)
 	_draw_rounded_zone(_to_local_rect(rects[1]), deck_fill_color, deck_border_color)
 	_draw_rounded_zone(_to_local_rect(rects[2]), zone_fill_color, zone_border_color)
 	_draw_rounded_zone(_to_local_rect(rects[3]), zone_fill_color, zone_border_color)
+	_draw_rounded_zone(_to_local_rect(rects[4]), zone_fill_color, zone_border_color)
 
 
 func _sync_regions() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
 	var rects := _collect_zone_rects()
-	if rects.size() != 4:
+	if rects.size() != 5:
 		return
 	var shader_material := material as ShaderMaterial
 	if shader_material != null:
@@ -62,7 +63,7 @@ func _sync_regions() -> void:
 
 func _collect_zone_rects() -> Array[Rect2]:
 	var result: Array[Rect2] = []
-	for path in [left_zone_path, deck_zone_path, right_zone_path, player_zone_path]:
+	for path in [left_zone_path, deck_zone_path, right_zone_path, player_zone_path, NodePath("../HandView")]:
 		var marker := get_node_or_null(path) as Control
 		if marker == null:
 			return []
