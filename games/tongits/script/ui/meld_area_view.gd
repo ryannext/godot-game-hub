@@ -16,7 +16,7 @@ const TABLE_PERSPECTIVE_CARD_SHADER := preload("res://games/tongits/assets/shade
 @export var center_rows_vertically := false
 @export var card_size := Vector2(32.0, 43.0)
 @export_range(4.0, 64.0, 0.5) var card_step := 21.0
-@export_range(0.0, 48.0, 0.5) var meld_gap := 14.0
+@export_range(0.0, 48.0, 0.5) var meld_gap := 10.0
 @export_range(0.0, 48.0, 0.5) var row_gap := 8.0
 @export_range(0.0, 48.0, 0.5) var horizontal_padding := 32.0
 @export_range(0.0, 48.0, 0.5) var vertical_padding := 12.0
@@ -24,9 +24,13 @@ const TABLE_PERSPECTIVE_CARD_SHADER := preload("res://games/tongits/assets/shade
 @export_category("桌面透视")
 @export var use_table_perspective := true
 @export_range(0.0, 1.0, 0.05) var card_perspective_strength := 1.0
+@export_category("展开动画")
+@export_range(0.05, 1.0, 0.05) var unfold_duration := 0.3
+@export_range(0.0, 0.2, 0.01) var unfold_card_delay := 0.04
 
 var _card_views: Array[TongitsCardView] = []
 var _view_slots: Array[Dictionary] = []
+var _unfold_tween: Tween
 
 func _ready() -> void:
 	clip_contents = false
@@ -34,10 +38,10 @@ func _ready() -> void:
 	_relayout()
 
 # 接受与手牌服务器相同的快照结构：cards + groups。
-func apply_snapshot(snapshot: Dictionary) -> void:
-	set_melds(snapshot.get("groups", []), snapshot.get("cards", []))
+func apply_snapshot(snapshot: Dictionary, animate := false) -> void:
+	set_melds(snapshot.get("groups", []), snapshot.get("cards", []), animate)
 
-func set_melds(melds: Array, card_data_list: Array) -> void:
+func set_melds(melds: Array, card_data_list: Array, animate := false) -> void:
 	clear_melds()
 	var cards_by_id := {}
 	for card_data: Dictionary in card_data_list:
@@ -51,27 +55,56 @@ func set_melds(melds: Array, card_data_list: Array) -> void:
 	for meld_index in melds.size():
 		var meld: Dictionary = melds[meld_index]
 		var card_ids: Array = meld.get("card_ids", [])
-		for card_index in card_ids.size():
-			var card_id := int(card_ids[card_index])
-			if not cards_by_id.has(card_id):
-				continue
-			var view := CARD_VIEW_SCRIPT.new() as TongitsCardView
-			view.name = "Meld%dCard%d" % [meld_index, card_index]
-			view.setup(cards_by_id[card_id])
-			view.set_display_size(card_size)
-			_apply_table_perspective(view)
-			view.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			view.z_index = card_index
-			add_child(view)
-			_card_views.append(view)
-			_view_slots.append({
-				"view": view,
-				"meld_index": meld_index,
-				"card_index": card_index,
-			})
+		_append_meld_views(meld_index, card_ids, cards_by_id)
 	_relayout()
+	if animate:
+		_animate_melds(Array(range(melds.size())))
+
+func append_meld(card_data_list: Array, animate := true) -> void:
+	if card_data_list.is_empty():
+		return
+	var meld_index := 0
+	for slot: Dictionary in _view_slots:
+		meld_index = maxi(meld_index, int(slot.meld_index) + 1)
+	var cards_by_id := {}
+	var card_ids: Array[int] = []
+	for card_data: Dictionary in card_data_list:
+		var card := TongitsCard.new(
+			int(card_data.get("suit", TongitsCard.Suit.CLUBS)),
+			int(card_data.get("rank", 1)),
+			int(card_data.get("card_id", -1))
+		)
+		cards_by_id[card.card_id] = card
+		card_ids.append(card.card_id)
+	_append_meld_views(meld_index, card_ids, cards_by_id)
+	_relayout()
+	if animate:
+		_animate_melds([meld_index])
+
+func _append_meld_views(meld_index: int, card_ids: Array, cards_by_id: Dictionary) -> void:
+	for card_index in card_ids.size():
+		var card_id := int(card_ids[card_index])
+		if not cards_by_id.has(card_id):
+			continue
+		var view := CARD_VIEW_SCRIPT.new() as TongitsCardView
+		view.name = "Meld%dCard%d" % [meld_index, card_index]
+		view.setup(cards_by_id[card_id])
+		view.set_display_size(card_size)
+		_apply_table_perspective(view)
+		view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		view.z_index = card_index if flow_direction == FlowDirection.LEFT_TO_RIGHT else card_ids.size() - 1 - card_index
+		add_child(view)
+		_card_views.append(view)
+		_view_slots.append({
+			"view": view,
+			"meld_index": meld_index,
+			"card_index": card_index,
+		})
 
 func clear_melds() -> void:
+	if _unfold_tween != null and _unfold_tween.is_valid():
+		_unfold_tween.kill()
+	_unfold_tween = null
 	for view: TongitsCardView in _card_views:
 		if is_instance_valid(view):
 			if view.get_parent() == self:
@@ -79,6 +112,25 @@ func clear_melds() -> void:
 			view.queue_free()
 	_card_views.clear()
 	_view_slots.clear()
+
+func _animate_melds(meld_indices: Array) -> void:
+	if meld_indices.is_empty():
+		return
+	if _unfold_tween != null and _unfold_tween.is_valid():
+		_unfold_tween.kill()
+	_unfold_tween = create_tween().set_parallel(true)
+	for meld_index_value in meld_indices:
+		var meld_index := int(meld_index_value)
+		var meld_slots := _view_slots.filter(func(slot: Dictionary) -> bool: return int(slot.meld_index) == meld_index)
+		if meld_slots.is_empty():
+			continue
+		meld_slots.sort_custom(func(left: Dictionary, right: Dictionary) -> bool: return int(left.card_index) < int(right.card_index))
+		var origin := (meld_slots[0].view as TongitsCardView).position
+		for slot: Dictionary in meld_slots:
+			var view := slot.view as TongitsCardView
+			var target := view.position
+			view.position = origin
+			_unfold_tween.tween_property(view, "position", target, unfold_duration).set_delay(float(slot.card_index) * unfold_card_delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func calculate_layout(meld_sizes: Array[int]) -> Array:
 	var positions: Array = []

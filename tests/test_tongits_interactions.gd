@@ -51,6 +51,32 @@ func test_meld_areas_follow_each_players_inward_flow() -> void:
 	)
 	assert_eq(view.get_child_count(), 5, "MeldArea 应按快照为每张牌创建桌面卡牌视图")
 
+	view.flow_direction = TongitsMeldAreaView.FlowDirection.RIGHT_TO_LEFT
+	view.set_melds(
+		[{"group_id": 1, "card_ids": [20, 21, 22]}],
+		[
+			{"card_id": 20, "suit": TongitsCard.Suit.CLUBS, "rank": 8},
+			{"card_id": 21, "suit": TongitsCard.Suit.DIAMONDS, "rank": 8},
+			{"card_id": 22, "suit": TongitsCard.Suit.HEARTS, "rank": 8},
+		]
+	)
+	assert_true(view.get_child(0).z_index > view.get_child(2).z_index, "右侧牌组应让屏幕右边的牌覆盖左边的牌")
+
+func test_play_group_removes_cards_from_hand() -> void:
+	var simulator := TongitsHandServerSimulator.new()
+	_configure_cards(simulator, [
+		TongitsCard.new(TongitsCard.Suit.DIAMONDS, 7, 0),
+		TongitsCard.new(TongitsCard.Suit.CLUBS, 7, 1),
+		TongitsCard.new(TongitsCard.Suit.SPADES, 7, 2),
+	])
+	simulator.create_group([0, 1, 2])
+	var group_id := int(simulator.snapshot().groups[0].group_id)
+	var played := simulator.play_group(group_id)
+	var state := simulator.snapshot()
+	assert_eq(played.cards.size(), 3, "打牌组应返回用于 MeldArea 展示的三张牌")
+	assert_true(state.cards.is_empty(), "打出的牌不应继续留在手牌数据中")
+	assert_true(state.groups.is_empty(), "打出的牌组不应继续留在手牌牌组中")
+
 func test_same_single_card_group_drop_keeps_group() -> void:
 	var simulator := TongitsHandServerSimulator.new()
 	simulator.start_deal(12345)

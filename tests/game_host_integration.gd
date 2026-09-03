@@ -219,10 +219,15 @@ func _validate_hand_ui(module: Control) -> bool:
 	if group_action.disabled or group_action.text != "解散组" or play_meld_button.disabled:
 		_fail("选中牌组后解散或打牌组按钮没有启用")
 		return false
-	group_action.pressed.emit()
+	var player_meld_count_before := module.get_node("PlayerMeldArea").get_child_count()
+	play_meld_button.pressed.emit()
 	await get_tree().process_frame
-	if module.hand_snapshot().groups.size() != initial_group_count:
-		_fail("手牌 UI 解散操作没有移除牌组")
+	var played_state: Dictionary = module.hand_snapshot()
+	if played_state.groups.size() != initial_group_count or played_state.cards.size() != 11:
+		_fail("打牌组没有从手牌移除所选牌组")
+		return false
+	if module.get_node("PlayerMeldArea").get_child_count() != player_meld_count_before + 2:
+		_fail("打出的牌组没有添加到玩家 MeldArea")
 		return false
 
 	# 直接驱动手势控制器验证：长按只拖单张，且不改变用户选择的排序规则。
@@ -236,7 +241,7 @@ func _validate_hand_ui(module: Control) -> bool:
 	hand_view._on_card_drag_ended(drag_card_id, finish)
 	await get_tree().process_frame
 	var moved_state: Dictionary = module.hand_snapshot()
-	if moved_state.cards.size() != 13 or int(moved_state.sort_mode) != TongitsHandServerSimulator.SortMode.RANK_SUIT:
+	if moved_state.cards.size() != 11 or int(moved_state.sort_mode) != TongitsHandServerSimulator.SortMode.RANK_SUIT:
 		_fail("单张长按拖拽改变了当前点数优先规则")
 		return false
 	print("[GameHostTest] mobile hand UI interactions validated")

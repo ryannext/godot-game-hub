@@ -123,6 +123,26 @@ func dissolve_group(group_id: int) -> void:
 		_sort_loose_cards()
 	_commit()
 
+func play_group(group_id: int) -> Dictionary:
+	var group_index := _find_group_index(group_id)
+	if group_index < 0:
+		_reject("找不到要打出的牌组")
+		return {}
+	var card_ids: Array = _groups[group_index].card_ids.duplicate()
+	var played_cards: Array[Dictionary] = []
+	for card_id_value in card_ids:
+		var card_id := int(card_id_value)
+		if not _cards.has(card_id):
+			_reject("要打出的牌组包含不存在的牌")
+			return {}
+		var card: TongitsCard = _cards[card_id]
+		played_cards.append({"card_id": card.card_id, "suit": card.suit, "rank": card.rank})
+	_groups.remove_at(group_index)
+	for card_id_value in card_ids:
+		_cards.erase(int(card_id_value))
+	_commit()
+	return {"group_id": group_id, "cards": played_cards}
+
 func move_card(card_id: int, target_area: StringName, target_group_id: int, target_index: int) -> void:
 	if not _cards.has(card_id):
 		_reject("手牌中不存在这张牌")

@@ -31,6 +31,7 @@ func _ready() -> void:
 	%RedealButton.pressed.connect(_deal_hand)
 	auto_arrange_button.toggled.connect(_on_auto_arrange_toggled)
 	sort_rule_button.pressed.connect(_server.toggle_sort_mode)
+	play_meld_button.pressed.connect(_on_play_meld_pressed)
 	group_action_button.pressed.connect(_on_group_action_pressed)
 	hand_view.selection_changed.connect(_on_selection_changed)
 	hand_view.move_card_requested.connect(_server.move_card)
@@ -101,19 +102,19 @@ func _show_test_melds() -> void:
 		[[TongitsCard.Suit.HEARTS, 8], [TongitsCard.Suit.HEARTS, 9], [TongitsCard.Suit.HEARTS, 10]],
 		[[TongitsCard.Suit.DIAMONDS, 1], [TongitsCard.Suit.CLUBS, 1], [TongitsCard.Suit.HEARTS, 1], [TongitsCard.Suit.SPADES, 1]],
 		[[TongitsCard.Suit.DIAMONDS, 12], [TongitsCard.Suit.CLUBS, 12], [TongitsCard.Suit.SPADES, 12]],
-	], 100))
+	], 100), true)
 	opponent_right_meld_area.apply_snapshot(_build_test_meld_snapshot([
 		[[TongitsCard.Suit.DIAMONDS, 11], [TongitsCard.Suit.CLUBS, 11], [TongitsCard.Suit.SPADES, 11]],
 		[[TongitsCard.Suit.DIAMONDS, 9], [TongitsCard.Suit.HEARTS, 9], [TongitsCard.Suit.SPADES, 9]],
 		[[TongitsCard.Suit.CLUBS, 1], [TongitsCard.Suit.CLUBS, 2], [TongitsCard.Suit.CLUBS, 3], [TongitsCard.Suit.CLUBS, 4]],
 		[[TongitsCard.Suit.DIAMONDS, 8], [TongitsCard.Suit.CLUBS, 8], [TongitsCard.Suit.HEARTS, 8], [TongitsCard.Suit.SPADES, 8]],
 		[[TongitsCard.Suit.DIAMONDS, 6], [TongitsCard.Suit.DIAMONDS, 7], [TongitsCard.Suit.DIAMONDS, 8]],
-	], 200))
+	], 200), true)
 	player_meld_area.apply_snapshot(_build_test_meld_snapshot([
 		[[TongitsCard.Suit.DIAMONDS, 6], [TongitsCard.Suit.CLUBS, 6], [TongitsCard.Suit.SPADES, 6]],
 		[[TongitsCard.Suit.DIAMONDS, 13], [TongitsCard.Suit.HEARTS, 13], [TongitsCard.Suit.SPADES, 13]],
 		[[TongitsCard.Suit.DIAMONDS, 4], [TongitsCard.Suit.CLUBS, 4], [TongitsCard.Suit.SPADES, 4]],
-	], 300))
+	], 300), true)
 
 func _build_test_meld_snapshot(meld_specs: Array, first_card_id: int) -> Dictionary:
 	var cards: Array[Dictionary] = []
@@ -162,6 +163,14 @@ func _on_group_action_pressed() -> void:
 		_server.dissolve_group(_selected_group_id)
 	elif _selected_loose_ids.size() >= 2:
 		_server.create_group(_selected_loose_ids)
+
+func _on_play_meld_pressed() -> void:
+	if _selected_group_id < 0:
+		return
+	var played_meld := _server.play_group(_selected_group_id)
+	if played_meld.is_empty():
+		return
+	player_meld_area.append_meld(played_meld.get("cards", []), true)
 
 func _update_action_buttons() -> void:
 	# 没有对应牌局上下文的操作必须保持禁用，不能只靠按钮外观暗示可操作。
