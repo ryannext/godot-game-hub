@@ -12,7 +12,7 @@ extends "res://addons/gamehub_sdk/game_module.gd"
 @onready var opponent_left_meld_area: TongitsMeldAreaView = %OpponentLeftMeldArea
 @onready var opponent_right_meld_area: TongitsMeldAreaView = %OpponentRightMeldArea
 @onready var player_meld_area: TongitsMeldAreaView = %PlayerMeldArea
-@onready var deck_area: Control = %DeckArea
+@onready var deck_area: TongitsDeckPileView = %DeckArea
 @onready var deck_count_label: Label = %DeckCountLabel
 
 const DEAL_RESET_DELAY_SECONDS := 1.0
@@ -25,6 +25,8 @@ var _selected_group_id := -1
 var _deal_counter := 0
 var _deck_remaining_count := 0
 var _deal_request_generation := 0
+var _deal_in_progress := false
+var _draw_in_progress := false
 
 func _ready() -> void:
 	%ExitButton.pressed.connect(func(): exit_requested.emit())
@@ -34,9 +36,13 @@ func _ready() -> void:
 	discard_button.pressed.connect(_on_discard_pressed)
 	play_meld_button.pressed.connect(_on_play_meld_pressed)
 	group_action_button.pressed.connect(_on_group_action_pressed)
+	draw_button.pressed.connect(_on_draw_requested)
+	deck_area.draw_requested.connect(_on_draw_requested)
 	hand_view.selection_changed.connect(_on_selection_changed)
 	hand_view.move_card_requested.connect(_server.move_card)
 	hand_view.last_deal_card_started.connect(_on_last_deal_card_started)
+	hand_view.deal_animation_finished.connect(_on_deal_animation_finished)
+	hand_view.draw_animation_finished.connect(_on_draw_animation_finished)
 	_server.snapshot_changed.connect(_on_snapshot_changed)
 	_server.command_rejected.connect(_on_command_rejected)
 
@@ -80,6 +86,7 @@ func _deal_hand() -> void:
 		return
 
 	_deal_counter += 1
+	_deal_in_progress = true
 	hand_view.prepare_deal_animation()
 	# 固定基础 seed 加计数既方便复现，也能让“重新发牌”得到不同手牌。
 	_server.start_deal(20260828 + _deal_counter)
@@ -91,6 +98,8 @@ func _initialize_empty_table() -> void:
 	deck_area.call("clear_discard")
 	deck_area.visible = false
 	_deck_remaining_count = 0
+	_deal_in_progress = false
+	_draw_in_progress = false
 	opponent_left_meld_area.clear_melds()
 	opponent_right_meld_area.clear_melds()
 	player_meld_area.clear_melds()
@@ -140,6 +149,8 @@ func _on_snapshot_changed(snapshot: Dictionary) -> void:
 	var mode := int(snapshot.sort_mode)
 	_deck_remaining_count = int(snapshot.get("deck_remaining_count", 0))
 	deck_count_label.text = str(_deck_remaining_count)
+	# 权威牌数每次变化都重建牌堆层数；仅更新 Label 会造成数据减少但视觉牌堆不变。
+	deck_area.set_card_count(_deck_remaining_count, deck_area.visible)
 	deck_area.call("set_discard_cards", snapshot.get("discard_pile", []))
 	auto_arrange_button.set_pressed_no_signal(bool(snapshot.get("auto_arrange_enabled", true)))
 	sort_rule_button.text = "点数优先" if mode == TongitsHandServerSimulator.SortMode.RANK_SUIT else "花色优先"
@@ -149,6 +160,26 @@ func _on_last_deal_card_started() -> void:
 	# 第 13 张牌开始起飞时，在同一牌堆节点按快照真实生成剩余的 15 层牌背。
 	deck_area.visible = _deck_remaining_count > 0
 	deck_area.call("set_card_count", _deck_remaining_count, true)
+	_update_action_buttons()
+
+func _on_deal_animation_finished() -> void:
+	_deal_in_progress = false
+	_update_action_buttons()
+
+func _on_draw_requested() -> void:
+	if _deal_in_progress or _draw_in_progress or _deck_remaining_count <= 0:
+		return
+	_draw_in_progress = true
+	hand_view.clear_selection()
+	hand_view.prepare_draw_animation()
+	var drawn_card := _server.draw_card()
+	if drawn_card.is_empty():
+		_draw_in_progress = false
+		_update_action_buttons()
+
+func _on_draw_animation_finished() -> void:
+	_draw_in_progress = false
+	_update_action_buttons()
 
 func _on_selection_changed(loose_card_ids: Array, selected_group_id: int) -> void:
 	_selected_loose_ids.assign(loose_card_ids)
@@ -185,7 +216,8 @@ func _update_action_buttons() -> void:
 	discard_button.disabled = _selected_group_id >= 0 or _selected_loose_ids.size() != 1
 	play_meld_button.disabled = _selected_group_id < 0
 	layoff_button.disabled = true
-	draw_button.disabled = true
+	draw_button.disabled = _deck_remaining_count <= 0 or _deal_in_progress or _draw_in_progress
+	deck_area.set_draw_enabled(not draw_button.disabled)
 
 	if _selected_group_id >= 0:
 		group_action_button.text = "解散组"

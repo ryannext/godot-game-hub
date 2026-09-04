@@ -1,6 +1,8 @@
 class_name TongitsDeckPileView
 extends Control
 
+signal draw_requested
+
 const CARD_BACK_TEXTURE := preload("res://games/tongits/res/images/tip/card_back.png")
 const TABLE_SPLIT_CARD_SHADER := preload("res://games/tongits/assets/shaders/table_split_card.gdshader")
 const CARD_SIZE := Vector2(67.2, 90.0)
@@ -17,6 +19,7 @@ const TABLE_NEAR_SCALE := 1.06
 @onready var discard_pile_anchor: Control = $DiscardPileAnchor
 
 var _card_count := 0
+var _draw_enabled := false
 var _discard_cards: Array[TextureRect] = []
 var _discard_card_ids: Array[int] = []
 
@@ -38,7 +41,7 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 		card_back.name = "PileCard%02d" % depth
 		card_back.position = draw_pile_anchor.position + Vector2(0.0, top_offset_y + LAYER_OFFSET_Y * depth)
 		card_back.size = CARD_SIZE
-		card_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card_back.mouse_filter = Control.MOUSE_FILTER_STOP if depth == 0 and _draw_enabled else Control.MOUSE_FILTER_IGNORE
 		card_back.texture = CARD_BACK_TEXTURE
 		card_back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		card_back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -47,10 +50,31 @@ func set_card_count(card_count: int, show_count: bool) -> void:
 		# 牌背保持与 HandView 同层；按“底层先创建、顶层后创建”的兄弟顺序完成覆盖。
 		card_back.z_index = 0
 		add_child(card_back)
+		if depth == 0:
+			card_back.gui_input.connect(_on_draw_pile_gui_input)
 	count_badge.position = draw_pile_anchor.position + COUNT_BADGE_OFFSET + Vector2(0.0, top_offset_y)
 	count_label.text = str(_card_count)
 	count_badge.visible = show_count and _card_count > 0
 	count_badge.z_index = _card_count + 1
+
+func set_draw_enabled(enabled: bool) -> void:
+	_draw_enabled = enabled and _card_count > 0
+	var top_card := get_node_or_null("PileCard00") as TextureRect
+	if top_card != null:
+		top_card.mouse_filter = Control.MOUSE_FILTER_STOP if _draw_enabled else Control.MOUSE_FILTER_IGNORE
+
+func _on_draw_pile_gui_input(event: InputEvent) -> void:
+	if not _draw_enabled:
+		return
+	var released: bool = (
+		(event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed)
+		or (event is InputEventScreenTouch and not event.pressed)
+	)
+	if not released:
+		return
+	_draw_enabled = false
+	draw_requested.emit()
+	accept_event()
 
 func _create_table_half_material(pivot_x: float) -> ShaderMaterial:
 	var perspective_material := ShaderMaterial.new()

@@ -156,6 +156,14 @@ func _is_snapshot_sorted(state: Dictionary, mode: int) -> bool:
 
 func _validate_hand_ui(module: Control) -> bool:
 	var hand_view := module.get_node("HandView") as TongitsHandView
+	if hand_view.pivot_offset.distance_to(hand_view.size * 0.5) > 1.0:
+		_fail("HandView 轴心没有位于自身正中心")
+		return false
+	var hand_left_margin := hand_view.position.x
+	var hand_right_margin := module.size.x - hand_view.position.x - hand_view.size.x
+	if absf(hand_left_margin - hand_right_margin) > 1.0:
+		_fail("HandView 加宽后没有保持左右对称")
+		return false
 	var discard_button := module.get_node("ActionBar/DiscardButton") as Button
 	var play_meld_button := module.get_node("ActionBar/PlayMeldButton") as Button
 	var group_action := module.get_node("ActionBar/GroupActionButton") as Button
@@ -187,6 +195,9 @@ func _validate_hand_ui(module: Control) -> bool:
 	if initial_state.cards.size() != 13:
 		_fail("点击测试发牌并等待后没有生成 13 张手牌")
 		return false
+	# 后续直接调用 HandView 内部交互，因此先等完整发牌动画结束，避免测试快照中断动画状态。
+	await hand_view.deal_animation_finished
+	await get_tree().process_frame
 	if module.get_node("DeckArea").has_node("DiscardPlaceholder") or module.get_node("DeckArea").has_node("DiscardCardTop"):
 		_fail("尚未弃牌时弃牌堆不应保留占位牌或真实牌")
 		return false
@@ -294,6 +305,38 @@ func _validate_hand_ui(module: Control) -> bool:
 	var moved_state: Dictionary = module.hand_snapshot()
 	if moved_state.cards.size() != 8 or int(moved_state.sort_mode) != TongitsHandServerSimulator.SortMode.RANK_SUIT:
 		_fail("单张长按拖拽改变了当前点数优先规则")
+		return false
+
+	# 牌堆点击应让真实牌从牌堆中心飞到重新计算后的手牌末位。
+	if draw_button.disabled:
+		_fail("发牌动画结束且牌堆有牌时摸牌操作没有启用")
+		return false
+	var deck_area := module.get_node("DeckArea") as TongitsDeckPileView
+	var deck_count_before := int(moved_state.deck_remaining_count)
+	deck_area.draw_requested.emit()
+	await get_tree().process_frame
+	var drawn_state: Dictionary = module.hand_snapshot()
+	if drawn_state.cards.size() != 9 or int(drawn_state.deck_remaining_count) != deck_count_before - 1:
+		_fail("点击摸牌堆没有让手牌加一且牌堆减一")
+		return false
+	if deck_area.card_count() != deck_count_before - 1 or deck_area.get_node("DeckCountBadge/DeckCountLabel").text != str(deck_count_before - 1):
+		_fail("摸牌后画面中的牌堆层数或数量标签没有同步减少")
+		return false
+	var drawn_card_id := int(drawn_state.loose_card_ids[-1])
+	var drawn_view: TongitsCardView = hand_view._card_views.get(drawn_card_id)
+	var draw_target: Vector2 = hand_view._last_layout.card_positions.get(drawn_card_id, Vector2.ZERO)
+	if drawn_view == null or not hand_view._move_tweens.has(drawn_card_id):
+		_fail("摸到的新牌没有创建下降动画")
+		return false
+	if absf(drawn_view.position.x - draw_target.x) > 1.0 or drawn_view.position.y >= draw_target.y - 2.0:
+		_fail("摸到的新牌没有直接出现在末位上方")
+		return false
+	if not drawn_view.texture is AtlasTexture:
+		_fail("摸到的新牌在下降开始时没有显示牌面")
+		return false
+	await get_tree().create_timer(0.3).timeout
+	if drawn_view.position.distance_to(draw_target) > 1.0 or drawn_view.scale.distance_to(Vector2.ONE) > 0.01:
+		_fail("摸到的新牌没有准确落在新计算的手牌末位")
 		return false
 	print("[GameHostTest] mobile hand UI interactions validated")
 	return true

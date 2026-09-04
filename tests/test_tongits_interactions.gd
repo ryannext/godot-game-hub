@@ -15,6 +15,23 @@ func test_mouse_release_without_press_does_not_tap() -> void:
 	view._gui_input(release)
 	assert_false(tapped, "孤立的鼠标 release 不应触发卡牌点击")
 
+func test_hand_group_gap_stays_fixed_when_card_step_compresses() -> void:
+	var view := track(TongitsHandView.new()) as TongitsHandView
+	view._groups = [
+		{"group_id": 1, "card_ids": [0, 1, 2]},
+		{"group_id": 2, "card_ids": [3, 4, 5]},
+	]
+	view._loose_card_ids = []
+	view.size = Vector2(1000.0, 200.0)
+	var wide_layout := view._calculate_layout(&"", -1, -1)
+	var wide_gap: float = wide_layout.card_positions[3].x - wide_layout.card_positions[2].x - TongitsHandView.CARD_SIZE.x
+	view.size = Vector2(500.0, 200.0)
+	var compact_layout := view._calculate_layout(&"", -1, -1)
+	var compact_gap: float = compact_layout.card_positions[3].x - compact_layout.card_positions[2].x - TongitsHandView.CARD_SIZE.x
+	assert_true(is_equal_approx(wide_gap, TongitsHandView.GROUP_GAP), "宽布局的牌组边缘间距应使用固定值")
+	assert_true(is_equal_approx(compact_gap, TongitsHandView.GROUP_GAP), "压缩牌距后牌组边缘间距仍应保持不变")
+	assert_true(float(compact_layout.card_step) < float(wide_layout.card_step), "空间不足时应只压缩组内牌距")
+
 func test_meld_areas_follow_each_players_inward_flow() -> void:
 	var view := track(TongitsMeldAreaView.new()) as TongitsMeldAreaView
 	view.size = Vector2(350, 220)
@@ -139,6 +156,17 @@ func test_default_mode_is_rank_first_with_auto_arrange_enabled() -> void:
 	assert_true(bool(state.auto_arrange_enabled), "新局默认应开启自动排列")
 	assert_eq(int(state.sort_mode), TongitsHandServerSimulator.SortMode.RANK_SUIT, "新局默认应为点数优先")
 	assert_eq(int(state.deck_remaining_count), 15, "三人局发完牌后牌堆应剩余 15 张")
+
+func test_draw_card_appends_to_hand_end_and_decrements_stock() -> void:
+	var simulator := TongitsHandServerSimulator.new()
+	simulator.start_deal(20260829)
+	var before := simulator.snapshot()
+	var drawn := simulator.draw_card()
+	var after := simulator.snapshot()
+	assert_false(drawn.is_empty(), "牌堆有牌时应能摸到一张真实牌")
+	assert_eq(after.cards.size(), before.cards.size() + 1, "摸牌后手牌应增加一张")
+	assert_eq(int(after.deck_remaining_count), int(before.deck_remaining_count) - 1, "摸牌后牌堆数量应减一")
+	assert_eq(int(after.loose_card_ids[-1]), int(drawn.card_id), "摸到的牌应追加在散牌区最后一位")
 
 func test_reset_table_clears_cards_groups_and_deck() -> void:
 	var simulator := TongitsHandServerSimulator.new()

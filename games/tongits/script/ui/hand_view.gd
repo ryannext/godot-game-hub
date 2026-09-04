@@ -17,14 +17,15 @@ signal move_card_requested(card_id: int, target_area: StringName, target_group_i
 signal last_deal_card_started
 # 发牌牌背全部落位并翻为牌面后的完整结束事件，供后续流程衔接使用。
 signal deal_animation_finished
+signal draw_animation_finished
 
 const CARD_VIEW_SCRIPT := preload("res://games/tongits/script/ui/card_view.gd")
 const GROUP_BADGE_OVERLAY_SCRIPT := preload("res://games/tongits/script/ui/group_badge_overlay.gd")
 const CARD_SIZE := Vector2(112, 150)
-const MAX_CARD_STEP := 68.0
+const MAX_CARD_STEP := 60.0
 const MIN_CARD_STEP := 38.0
-# 组边界的额外步长必须大于常规 44px 重叠量，才能在组牌与散牌之间留下可见空隙。
-const GROUP_GAP := 64.0
+# 相邻区域的牌面边缘始终保留固定空隙；空间不足时只压缩各区域内部的卡牌步长。
+const GROUP_GAP := 20.0
 const SELECTED_OFFSET := 28.0
 # 拖拽占位左右各一张牌轻微抬起，形成托住拖拽牌的视觉凹槽，但不抢过选中态的高度。
 const DRAG_NEIGHBOR_LIFT := 10.0
@@ -51,6 +52,8 @@ const DEAL_INITIAL_STACK_HOLD_SECONDS := 0.12
 const DEAL_REVEAL_MIN_SCALE := 0.7
 const DEAL_REVEAL_SHRINK_SECONDS := 0.05
 const DEAL_FACE_GROW_SECONDS := 0.10
+const DRAW_CARD_DROP_DISTANCE := 64.0
+const DRAW_CARD_DROP_SECONDS := 0.18
 
 @export_category("调试显示")
 # 默认隐藏牌组范围和选中牌描边；需要检查命中、分组时可在 Inspector 中临时开启。
@@ -96,6 +99,7 @@ var _drag_grab_offset := Vector2.ZERO
 var _pending_move_card_id := -1
 var _last_applied_revision := -1
 var _deal_animation_pending := false
+var _draw_animation_pending := false
 var _deal_cards_remaining := 0
 var _deal_order_card_ids: Array[int] = []
 var _arrange_animation_pending := false
@@ -116,8 +120,16 @@ func _ready() -> void:
 	_group_badge_overlay.z_index = 900
 	add_child(_group_badge_overlay)
 	_group_badge_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	resized.connect(func(): _relayout(false))
+	_sync_center_pivot()
+	resized.connect(_on_resized)
 	set_process(false)
+
+func _on_resized() -> void:
+	_sync_center_pivot()
+	_relayout(false)
+
+func _sync_center_pivot() -> void:
+	pivot_offset = size * 0.5
 
 func _process(_delta: float) -> void:
 	# 父节点绘制的牌组外框和前景标识需要跟随子卡牌 Tween 的实时位置。
@@ -134,8 +146,11 @@ func apply_snapshot(snapshot: Dictionary) -> void:
 	if revision >= 0:
 		_last_applied_revision = revision
 	var play_deal_animation := _deal_animation_pending
+	var play_draw_animation := _draw_animation_pending
+	var previous_card_ids := _cards.keys()
 	var play_arrange_animation := _arrange_animation_pending
 	_deal_animation_pending = false
+	_draw_animation_pending = false
 	_arrange_animation_pending = false
 	_cancel_deal_animation_runtime()
 	_cancel_active_drag(false)
@@ -156,6 +171,13 @@ func apply_snapshot(snapshot: Dictionary) -> void:
 	_validate_selection()
 	if play_deal_animation:
 		_relayout_deal()
+	elif play_draw_animation:
+		var drawn_card_id := -1
+		for card_id in _cards.keys():
+			if not previous_card_ids.has(card_id):
+				drawn_card_id = int(card_id)
+				break
+		_relayout_draw_card(drawn_card_id)
 	elif play_arrange_animation:
 		_relayout_collapse_expand()
 	else:
@@ -167,6 +189,55 @@ func prepare_deal_animation() -> void:
 	_pending_move_card_id = -1
 	_deal_animation_pending = true
 	_set_card_interaction_enabled(false)
+
+func prepare_draw_animation() -> void:
+	_cancel_active_drag(false)
+	_pending_move_card_id = -1
+	_draw_animation_pending = true
+	_set_card_interaction_enabled(false)
+
+func _relayout_draw_card(card_id: int) -> void:
+	if card_id < 0 or not _card_views.has(card_id):
+		_relayout(true)
+		_set_card_interaction_enabled(true)
+		draw_animation_finished.emit()
+		return
+	# 原有手牌先移动到加入新牌后的布局；新增牌直接在末位上方出现并向下落位。
+	_relayout(true)
+	var view: TongitsCardView = _card_views[card_id]
+	var target: Vector2 = _last_layout.card_positions.get(card_id, view.position)
+	var approach_target := target - Vector2(0.0, DRAW_CARD_DROP_DISTANCE)
+	var target_z := int(_last_layout.card_order.get(card_id, _card_views.size() - 1))
+	_stop_card_tween(card_id)
+	view.position = approach_target
+	view.scale = Vector2.ONE
+	view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
+	view.z_index = 1000
+	view.show_front()
+	var tween := view.create_tween()
+	# 不再从牌堆飞行；新牌从最终 X 对应的上方以正面垂直下降。
+	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(view, "position", target, DRAW_CARD_DROP_SECONDS)
+	_move_tweens[card_id] = tween
+	_move_targets[card_id] = target
+	tween.finished.connect(_on_draw_card_finished.bind(card_id, tween, target, target_z))
+	set_process(true)
+
+func _on_draw_card_finished(card_id: int, tween: Tween, target: Vector2, target_z: int) -> void:
+	if _move_tweens.get(card_id) != tween:
+		return
+	_move_tweens.erase(card_id)
+	_move_targets.erase(card_id)
+	var view: TongitsCardView = _card_views.get(card_id)
+	if view != null:
+		view.position = target
+		view.scale = Vector2.ONE
+		view.perspective_rotation_x = HAND_PERSPECTIVE_ROTATION_X
+		view.z_index = target_z
+		view.show_front()
+	_set_card_interaction_enabled(true)
+	_sync_input_order(_last_layout.entries)
+	draw_animation_finished.emit()
 
 func prepare_arrange_animation() -> void:
 	# 下一份快照会改变组合结构；先保留当前牌位，收到结果后统一收拢到中心再展开。
@@ -923,17 +994,25 @@ func _calculate_layout(preview_area: StringName, preview_group_id: int, preview_
 	for index in range(1, entries.size()):
 		if entries[index].area != entries[index - 1].area or entries[index].group_id != entries[index - 1].group_id:
 			boundary_count += 1
+	var internal_step_count := maxi(0, entries.size() - 1 - boundary_count)
 	var available := maxf(1.0, size.x - HAND_MARGIN * 2.0)
 	var card_step := MAX_CARD_STEP
-	if entries.size() > 1:
+	if internal_step_count > 0:
 		card_step = clampf(
-			(available - CARD_SIZE.x - boundary_count * GROUP_GAP) / float(entries.size() - 1),
+			(
+				available
+				- CARD_SIZE.x
+				- boundary_count * (CARD_SIZE.x + GROUP_GAP)
+			) / float(internal_step_count),
 			MIN_CARD_STEP,
 			MAX_CARD_STEP
 		)
 	var total_width := CARD_SIZE.x
 	if entries.size() > 1:
-		total_width += card_step * (entries.size() - 1) + boundary_count * GROUP_GAP
+		total_width += (
+			card_step * internal_step_count
+			+ boundary_count * (CARD_SIZE.x + GROUP_GAP)
+		)
 	var cursor_x := maxf(HAND_MARGIN, (size.x - total_width) * 0.5)
 	var card_positions := {}
 	var card_order := {}
@@ -948,7 +1027,8 @@ func _calculate_layout(preview_area: StringName, preview_group_id: int, preview_
 	for order_index in entries.size():
 		var entry := entries[order_index]
 		if order_index > 0 and (entry.area != previous_area or int(entry.group_id) != previous_group_id):
-			cursor_x += GROUP_GAP
+			# 上一张已经推进了一个 card_step，这里补足到“完整牌宽 + 固定边缘间距”。
+			cursor_x += CARD_SIZE.x + GROUP_GAP - card_step
 		var selected_offset := 0.0
 		if entry.area == &"group" and int(entry.group_id) == _selected_group_id:
 			selected_offset = SELECTED_OFFSET

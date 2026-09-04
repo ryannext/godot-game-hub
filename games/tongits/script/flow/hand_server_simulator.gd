@@ -23,6 +23,7 @@ var _cards: Dictionary = {}
 var _groups: Array[Dictionary] = []
 var _loose_card_ids: Array[int] = []
 var _discard_pile: Array[Dictionary] = []
+var _stock_cards: Array[TongitsCard] = []
 var _sort_mode := SortMode.RANK_SUIT
 var _auto_arrange_enabled := true
 var _revision := 0
@@ -35,6 +36,7 @@ func reset_table() -> void:
 	_groups.clear()
 	_loose_card_ids.clear()
 	_discard_pile.clear()
+	_stock_cards.clear()
 	_next_group_id = 1
 	_deck_remaining_count = 0
 	_sort_mode = SortMode.RANK_SUIT
@@ -46,6 +48,7 @@ func start_deal(seed_value := 20260828) -> void:
 	_groups.clear()
 	_loose_card_ids.clear()
 	_discard_pile.clear()
+	_stock_cards.clear()
 	_next_group_id = 1
 	_deck_remaining_count = 0
 	_sort_mode = SortMode.RANK_SUIT
@@ -63,7 +66,9 @@ func start_deal(seed_value := 20260828) -> void:
 	# 单机三人局仍需为两名 AI 各发 12 张隐藏牌，桌面牌堆因此保留标准的 15 张。
 	for _hidden_card_index in 24:
 		deck.draw()
-	_deck_remaining_count = deck.remaining()
+	while deck.remaining() > 0:
+		_stock_cards.append(deck.draw())
+	_deck_remaining_count = _stock_cards.size()
 	# 自动排列默认开启：发牌快照直接生成牌组与散牌，视图会在翻牌结束后统一收拢再展开。
 	_auto_arrange_hand()
 	_commit()
@@ -158,6 +163,18 @@ func discard_card(card_id: int) -> Dictionary:
 	_discard_pile.append(discarded_card)
 	_commit()
 	return discarded_card
+
+func draw_card() -> Dictionary:
+	if _stock_cards.is_empty():
+		_reject("摸牌堆已经没有牌")
+		return {}
+	var card: TongitsCard = _stock_cards.pop_front()
+	_cards[card.card_id] = card
+	# 摸到的牌固定追加到散牌区末尾；本次摸牌不触发自动整理，确保动画落点就是手牌最后一位。
+	_loose_card_ids.append(card.card_id)
+	_deck_remaining_count = _stock_cards.size()
+	_commit()
+	return {"card_id": card.card_id, "suit": card.suit, "rank": card.rank}
 
 func move_card(card_id: int, target_area: StringName, target_group_id: int, target_index: int) -> void:
 	if not _cards.has(card_id):
